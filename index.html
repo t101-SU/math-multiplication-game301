@@ -112,6 +112,7 @@
 
     /* 醒目的果汁計數膠囊（平板上巡視一眼即見） */
     .juice-counter-pill {
+      position: relative;
       background: #FFF7ED;
       border: 3px solid #FB923C;
       color: #C2410C;
@@ -120,6 +121,44 @@
       cursor: pointer;
       box-shadow: 0 3px 0 #EA580C;
       transition: all 0.2s;
+    }
+
+    .juice-counter-pill.shake-deduct {
+      animation: pillDeductShake 0.5s ease-in-out;
+      border-color: #EF4444;
+      background: #FEF2F2;
+      box-shadow: 0 3px 0 #DC2626;
+    }
+
+    @keyframes pillDeductShake {
+      0%, 100% { transform: scale(1); }
+      20%, 60% { transform: scale(1.1) translateX(-4px); }
+      40%, 80% { transform: scale(1.1) translateX(4px); }
+    }
+
+    .floating-deduct-notice {
+      position: absolute;
+      top: -26px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #EF4444;
+      color: #FFFFFF;
+      font-size: 0.85rem;
+      font-weight: 900;
+      padding: 3px 10px;
+      border-radius: 999px;
+      box-shadow: 0 4px 10px rgba(239, 68, 68, 0.45);
+      pointer-events: none;
+      animation: floatUpFade 1.2s ease-out forwards;
+      white-space: nowrap;
+      z-index: 100;
+    }
+
+    @keyframes floatUpFade {
+      0% { opacity: 0; transform: translate(-50%, 6px) scale(0.8); }
+      20% { opacity: 1; transform: translate(-50%, -6px) scale(1.15); }
+      70% { opacity: 1; transform: translate(-50%, -18px) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -32px) scale(0.9); }
     }
 
     .juice-counter-pill:hover {
@@ -531,7 +570,7 @@
       color: #059669;
     }
 
-    .answer-cell.error {
+    .answer-cell.error, .carry-bubble.error {
       border-color: #EF4444;
       background: #FEF2F2;
       color: #DC2626;
@@ -604,11 +643,74 @@
 
     /* 虛擬數字鍵盤 */
     .keypad-card {
+      position: relative;
       background: #FFFFFF;
       border: 3px solid #E2E8F0;
       border-radius: 24px;
       padding: 14px;
       box-shadow: 0 6px 0 #CBD5E1;
+      transition: border-color 0.25s;
+    }
+
+    /* 防狂按/防盲猜鎖定狀態 (Anti-Spam Lockout) */
+    .keypad-card.locked {
+      border-color: #F87171;
+    }
+
+    .keypad-card.locked .keypad-grid {
+      opacity: 0.38;
+      pointer-events: none;
+      filter: grayscale(70%);
+      transition: opacity 0.2s ease;
+    }
+
+    .keypad-lock-notice {
+      display: none;
+      background: #FEF2F2;
+      border: 2px solid #FCA5A5;
+      color: #991B1B;
+      font-size: 0.8rem;
+      font-weight: 800;
+      text-align: center;
+      padding: 6px 10px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+      animation: noticePulse 0.8s infinite alternate;
+    }
+
+    .keypad-card.locked .keypad-lock-notice {
+      display: block;
+    }
+
+    @keyframes noticePulse {
+      0% { transform: scale(0.98); background: #FEF2F2; }
+      100% { transform: scale(1.01); background: #FEE2E2; }
+    }
+
+    /* 本題調配純度愛心膠囊（防亂按懲罰機制） */
+    .heart-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: #FFF1F2;
+      border: 2px solid #FDA4AF;
+      color: #E11D48;
+      font-size: 0.88rem;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-weight: 800;
+      box-shadow: 0 2px 4px rgba(225, 29, 72, 0.1);
+      transition: all 0.25s ease;
+    }
+
+    .heart-badge.shake {
+      animation: heartShake 0.4s ease-in-out;
+    }
+
+    @keyframes heartShake {
+      0%, 100% { transform: scale(1); }
+      20%, 60% { transform: scale(1.18) rotate(-6deg); }
+      40%, 80% { transform: scale(1.18) rotate(6deg); }
     }
 
     .keypad-header {
@@ -1035,8 +1137,6 @@
       color: #4338CA;
     }
 
-    /* 錢幣輔助圖解（配合課本第54, 56, 57頁的10元、1元、100元圖像表徵） */
-    .coin-helpers {
     /* 課本錢幣表徵容器（完全對應課本附件教具圖示） */
     .coin-helpers {
       display: flex;
@@ -1205,7 +1305,13 @@
           <div class="story-title" id="scenarioTitle">第 1 關：夜市彈珠台（整十、整百乘法）</div>
           <div class="story-desc" id="scenarioDesc">全家一起逛夜市！玩一次彈珠臺要 20 元，品睿玩了 3 次，共花了多少元？</div>
         </div>
-        <div class="mode-badge" id="modeBadge">引導模式</div>
+        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
+          <div class="mode-badge" id="modeBadge">💡 引導模式</div>
+          <div class="heart-badge" id="problemHeartBadge" title="本題調配純度：有 3 次機會，失誤 3 次果汁會酸掉喔！">
+            <span style="font-size: 0.72rem; color: #BE123C; margin-right: 2px;">純度:</span>
+            <span id="heartIcons">❤️❤️❤️</span>
+          </div>
+        </div>
       </div>
 
       <!-- 核心直式計算板 -->
@@ -1293,10 +1399,13 @@
     <aside class="sidebar-panel">
       
       <!-- 虛擬可愛數字鍵盤（方便平板、電子白板與觸控螢幕操作） -->
-      <div class="keypad-card">
+      <div class="keypad-card" id="keypadCard">
         <div class="keypad-header">
           <span class="keypad-title">🔢 點選填入數字</span>
           <span style="font-size: 0.8rem; color: #94A3B8;">也支援鍵盤輸入喔</span>
+        </div>
+        <div class="keypad-lock-notice" id="keypadLockNotice">
+          🤔 請先動腦算一下，想清楚再按喔！(冷卻 1 秒)
         </div>
         <div class="keypad-grid">
           <button class="key-btn" data-key="1">1</button>
@@ -1367,6 +1476,8 @@
   <div class="modal-overlay" id="victoryModal">
     <div class="modal-card">
       <div class="modal-ribbon">🥤 🎉 🌟</div>
+      <div id="victoryStars" style="font-size: 1.8rem; margin-bottom: 2px;">⭐⭐⭐</div>
+      <div id="victoryQualityText" style="font-size: 0.95rem; font-weight: 800; color: #D97706; margin-bottom: 8px;">完美特調！零失誤滿分！</div>
       <h2 class="modal-title">🎉 成功調配出第 <span id="modalCurrentJuiceNum">1</span> 杯果汁！</h2>
       <p class="modal-subtitle">直式乘法計算完全正確！豆豆的果汁吧又多了一杯特調！</p>
       
@@ -1388,8 +1499,12 @@
       <div class="teacher-evaluation-card">
         <div class="eval-stat-row">
           <div class="eval-item">
-            <div class="eval-label">🥤 本台平板總累積</div>
-            <div class="eval-val-big"><span id="evalJuiceTotal">1</span> 杯果汁</div>
+            <div class="eval-label">🥤 現存累積果汁</div>
+            <div class="eval-val-big"><span id="evalJuiceTotal">1</span> 杯</div>
+          </div>
+          <div class="eval-item">
+            <div class="eval-label">💔 算錯扣除</div>
+            <div class="eval-val-big" id="evalLostTotal" style="color: #DC2626;">0 杯</div>
           </div>
           <div class="eval-item" style="text-align: right;">
             <div class="eval-label">📊 學生熟練程度</div>
@@ -1422,11 +1537,46 @@
     </div>
   </div>
 
+  <!-- 調配失敗彈窗 Modal（失誤達 3 次或多次亂按酸掉） -->
+  <div class="modal-overlay" id="failedModal">
+    <div class="modal-card" style="border-color: #F87171;">
+      <div class="modal-ribbon">🍋 😢 ⚠️</div>
+      <h2 class="modal-title" style="color: #DC2626;">哎呀！果汁調配失敗了！</h2>
+      <p class="modal-subtitle">失誤達到 3 次，材料比例失衡，果汁酸掉了～不能加入果汁吧喔！</p>
+      
+      <div class="juice-showcase" style="background: #FEF2F2; border-color: #F87171;">
+        <div style="font-size: 3.5rem; margin-bottom: 4px;">🍋</div>
+        <div class="reward-message" style="color: #991B1B;" id="failedFormulaText">
+          36 × 4 ＝ 144
+        </div>
+        <div style="font-size: 0.9rem; font-weight: bold; color: #DC2626; margin-top: 4px;">
+          ❌ 本題調配失敗・果汁杯數 ＋0 杯
+        </div>
+      </div>
+
+      <div class="teacher-evaluation-card" style="border-color: #FCA5A5; background: #FFF5F5;">
+        <div style="font-size: 0.88rem; color: #991B1B; font-weight: bold; line-height: 1.5; text-align: left;">
+          💡 <strong>豆豆店長的溫馨提醒：</strong><br>
+          算錯或隨意亂按會被<strong>扣果汁杯數</strong>喔！請先看上方的<strong>【課本錢幣表徵】</strong>托盤，或切換成<strong>【💡 引導模式】</strong>動腦算清楚再按按鍵！
+        </div>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 14px;">
+        <button class="btn-main" id="btnRetryFailed" style="background: #EF4444; border-color: #DC2626; box-shadow: 0 4px 0 #B91C1C;">
+          <span>🔄</span> 重新挑戰這題（再調配一次！）
+        </button>
+        <button class="btn-secondary" id="btnNextFailed">
+          <span>➡️</span> 跳過換下一題
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 果汁收藏吧台 Modal（展示全體已收集果汁與熟練度評定） -->
   <div class="modal-overlay" id="juiceShelfModal">
     <div class="modal-card" style="max-width: 600px;">
       <h2 class="modal-title">🍹 豆豆果汁吧・我的果汁收藏架</h2>
-      <p class="modal-subtitle">每算對一題就能調配一杯美味果汁，看看你有多熟練！</p>
+      <p class="modal-subtitle">算對能調配果汁，算錯或亂按會扣杯數，看看你有多熟練！</p>
 
       <div class="teacher-evaluation-card" style="margin-bottom: 12px;">
         <div class="eval-stat-row">
@@ -1435,13 +1585,24 @@
             <div style="font-size: 1.15rem; font-weight: 900; color: #1E293B;" id="shelfStudentName">聰明小博士</div>
           </div>
           <div class="eval-item">
-            <div class="eval-label">總累積杯數</div>
+            <div class="eval-label">🥤 現存果汁</div>
             <div class="eval-val-big" id="shelfTotalCups">0 杯</div>
           </div>
-          <div class="eval-item" style="text-align: right;">
-            <div class="eval-label">熟練度等級</div>
-            <div class="eval-val-badge" id="shelfProficiencyBadge">🌱 起步練習</div>
+          <div class="eval-item">
+            <div class="eval-label">💔 算錯扣除</div>
+            <div class="eval-val-big" style="color: #DC2626;" id="shelfLostCups">0 杯</div>
           </div>
+          <div class="eval-item">
+            <div class="eval-label">🏆 累計調配</div>
+            <div class="eval-val-big" style="color: #16A34A;" id="shelfEarnedCups">0 杯</div>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <div class="eval-label">熟練度等級：</div>
+          <div class="eval-val-badge" id="shelfProficiencyBadge">🌱 起步練習</div>
+        </div>
+        <div class="eval-comment" id="shelfDiagnosisText" style="margin-top: 8px; text-align: left;">
+          💡 尚未進行答題，點擊下方「繼續挑戰」開始調配果汁吧！
         </div>
       </div>
 
@@ -1674,6 +1835,56 @@
           osc.stop(now + m.t + m.d);
         });
       }
+
+      // 扣除果汁杯數音效（下滑音＋水滴濺漏聲）
+      playDeduct() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const freqs = [392, 329.63, 261.63]; // G4 -> E4 -> C4 下滑
+        freqs.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(f, now + idx * 0.08);
+          osc.frequency.exponentialRampToValueAtTime(f * 0.75, now + idx * 0.08 + 0.12);
+          gain.gain.setValueAtTime(0.18, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.14);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.14);
+        });
+      }
+
+      // 調配失敗酸掉音效（滑稽檸檬音）
+      playFailed() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+
+        const now = this.ctx.currentTime;
+        const notes = [
+          { f: 330, t: 0, d: 0.18 },
+          { f: 311, t: 0.2, d: 0.18 },
+          { f: 293, t: 0.4, d: 0.35 }
+        ];
+        notes.forEach(n => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(n.f, now + n.t);
+          osc.frequency.exponentialRampToValueAtTime(n.f * 0.85, now + n.t + n.d);
+          gain.gain.setValueAtTime(0.2, now + n.t);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + n.t);
+          osc.stop(now + n.t + n.d);
+        });
+      }
     }
 
     const sound = new CuteSoundEngine();
@@ -1840,53 +2051,53 @@
       { name: "終極彩虹果汁之王", icon: "🌈", color: "#F43F5E" }
     ];
 
-    function getProficiencyData(cups) {
+    function getProficiencyData(cups, totalLost = 0) {
       if (cups === 0) {
         return {
           icon: "🌱",
           level: "起步練習生",
-          percent: "0%",
-          badge: "🌱 起步練習 (0%)",
-          comment: "剛開始探索乘法直式，快快完成第 1 題調配果汁吧！"
+          badge: "🌱 起步練習生 (0 杯)",
+          rate: totalLost > 0 ? "需加強思考" : "準備出發",
+          comment: totalLost > 0 ? "⚠️ 算錯已扣除多次果汁！建議先看課本錢幣圖示，切勿盲目亂按鍵盤！" : "剛開始探索乘法直式，動腦想一想，調配出第 1 杯果汁吧！"
         };
       } else if (cups <= 3) {
         return {
           icon: "🌿",
           level: "果汁小學徒",
-          percent: "35%",
-          badge: "🌿 果汁小學徒 (35%)",
-          comment: "已熟悉定位板與基本直式排列，乘法直式觀念起步良好！"
+          badge: "🌿 果汁小學徒",
+          rate: totalLost > 2 ? "失誤較多" : "表現良好",
+          comment: totalLost > 2 ? "算錯扣杯次數較多，請在草稿紙或看錢幣托盤想好再按！" : "已熟悉定位板與基本直式排列，乘法直式觀念起步良好！"
         };
       } else if (cups <= 6) {
         return {
           icon: "⭐",
           level: "進位好幫手",
-          percent: "65%",
-          badge: "⭐ 進位好幫手 (65%)",
+          badge: "⭐ 進位好幫手",
+          rate: totalLost > 3 ? "偶有失誤" : "穩定進步",
           comment: "能正確處理十位進位，乘法直式紀錄越來越熟練了！"
         };
       } else if (cups <= 10) {
         return {
           icon: "🌟",
           level: "神算果汁師",
-          percent: "85%",
-          badge: "🌟 神算果汁師 (85%)",
+          badge: "🌟 神算果汁師",
+          rate: "熟練度高",
           comment: "運算精準迅速，三位數乘法與進位掌握度極佳！"
         };
       } else if (cups <= 15) {
         return {
           icon: "🏆",
           level: "乘法直式大師",
-          percent: "95%",
-          badge: "🏆 乘法直式大師 (95%)",
+          badge: "🏆 乘法直式大師",
+          rate: "卓越熟練",
           comment: "達到高熟練度！即使十位是 0 的迷宮題也完全難不倒你！"
         };
       } else {
         return {
           icon: "👑",
           level: "特級算術之王",
-          percent: "100%",
-          badge: "👑 特級算術之王 (100%)",
+          badge: "👑 特級算術之王",
+          rate: "頂級神算",
           comment: "無可挑剔的頂級神算手！班級直式乘法超級模範生！"
         };
       }
@@ -1905,7 +2116,12 @@
       currentStepIdx: 0,      // 當前步驟
       userInputs: {},         // 各欄位已填入的值
       activeTarget: null,     // 當前正在聚焦填答的格子 id
-      juiceCups: 0,           // 核心累積果汁杯數
+      juiceCups: 0,           // 現存果汁杯數
+      totalEarnedCups: 0,     // 累計成功調配杯數
+      totalLostCups: 0,       // 因算錯或亂按扣除杯數
+      failedCups: 0,          // 因失誤過多酸掉的杯數
+      currentProblemMistakes: 0, // 本題失誤次數
+      isInputLocked: false,   // 防狂按冷卻鎖定
       studentName: '聰明小博士', // 平板學生姓名
       juicesCollected: []     // 已收集的果汁紀錄清單
     };
@@ -1914,6 +2130,15 @@
       try {
         const savedCups = localStorage.getItem('doudou_juice_cups');
         if (savedCups !== null) state.juiceCups = parseInt(savedCups, 10) || 0;
+
+        const savedEarned = localStorage.getItem('doudou_total_earned');
+        if (savedEarned !== null) state.totalEarnedCups = parseInt(savedEarned, 10) || state.juiceCups;
+
+        const savedLost = localStorage.getItem('doudou_total_lost');
+        if (savedLost !== null) state.totalLostCups = parseInt(savedLost, 10) || 0;
+
+        const savedFailed = localStorage.getItem('doudou_failed_cups');
+        if (savedFailed !== null) state.failedCups = parseInt(savedFailed, 10) || 0;
 
         const savedName = localStorage.getItem('doudou_student_name');
         if (savedName) state.studentName = savedName;
@@ -1929,6 +2154,9 @@
     function saveCurrentData() {
       try {
         localStorage.setItem('doudou_juice_cups', state.juiceCups);
+        localStorage.setItem('doudou_total_earned', state.totalEarnedCups);
+        localStorage.setItem('doudou_total_lost', state.totalLostCups);
+        localStorage.setItem('doudou_failed_cups', state.failedCups);
         localStorage.setItem('doudou_student_name', state.studentName);
         localStorage.setItem('doudou_juice_list', JSON.stringify(state.juicesCollected));
       } catch (e) {
@@ -1937,8 +2165,66 @@
       updateJuiceUI();
     }
 
+    // 算錯或亂按扣除果汁杯數
+    function deductJuiceCup() {
+      state.totalLostCups++;
+
+      const hadCups = state.juiceCups > 0;
+      if (hadCups) {
+        state.juiceCups--;
+        // 收藏架同步扣除最近調配的一杯
+        if (state.juicesCollected.length > 0) {
+          state.juicesCollected.shift();
+        }
+      }
+      saveCurrentData();
+      sound.playDeduct();
+
+      // 觸發果汁膠囊抖動與浮動 -1 扣除提示
+      showDeductFloatingNotice(hadCups ? '-1 🥤 扣果汁!' : '⚠️ 0杯不能再扣囉！');
+    }
+
+    function showDeductFloatingNotice(text) {
+      const pill = document.getElementById('headerJuicePill');
+      if (!pill) return;
+
+      pill.classList.remove('shake-deduct');
+      void pill.offsetWidth;
+      pill.classList.add('shake-deduct');
+      setTimeout(() => pill.classList.remove('shake-deduct'), 600);
+
+      const oldNotice = document.querySelector('.floating-deduct-notice');
+      if (oldNotice) oldNotice.remove();
+
+      const notice = document.createElement('div');
+      notice.className = 'floating-deduct-notice';
+      notice.innerText = text;
+      pill.appendChild(notice);
+
+      setTimeout(() => {
+        if (notice.parentNode) notice.remove();
+      }, 1200);
+    }
+
+    function renderHearts(count) {
+      const el = document.getElementById('heartIcons');
+      if (!el) return;
+      let heartsStr = '';
+      for (let i = 0; i < 3; i++) {
+        heartsStr += (i < count) ? '❤️' : '🤍';
+      }
+      el.innerText = heartsStr;
+
+      const badge = document.getElementById('problemHeartBadge');
+      if (badge && count < 3) {
+        badge.classList.remove('shake');
+        void badge.offsetWidth;
+        badge.classList.add('shake');
+      }
+    }
+
     function updateJuiceUI() {
-      const prof = getProficiencyData(state.juiceCups);
+      const prof = getProficiencyData(state.juiceCups, state.totalLostCups);
 
       // 更新頂部狀態列
       const countEl = document.getElementById('juiceCupCount');
@@ -2109,6 +2395,15 @@
       state.steps = buildProblemSteps(prob.a, prob.b);
       state.currentStepIdx = 0;
       state.userInputs = {};
+      state.currentProblemMistakes = 0;
+      state.isInputLocked = false;
+
+      // 解鎖鍵盤
+      const keypad = document.getElementById('keypadCard');
+      if (keypad) keypad.classList.remove('locked');
+
+      // 重置愛心
+      renderHearts(3);
 
       // 更新故事文案
       const chapter = CHAPTERS[state.currentChapterIndex];
@@ -2279,10 +2574,12 @@
     }
 
     function handleInputNumber(digit) {
+      if (state.isInputLocked) return;
       if (state.currentStepIdx >= state.steps.length) return;
 
       const currentStep = state.steps[state.currentStepIdx];
       const targetEl = document.getElementById(currentStep.targetId);
+      if (!targetEl) return;
 
       sound.playNumKey(digit);
 
@@ -2308,21 +2605,70 @@
         }, 320);
 
       } else {
-        // 按錯了，親切引導不挫敗
-        sound.playOops();
+        // 算錯或亂按了！
+        // 1. 核心懲罰：扣除 1 杯果汁！
+        deductJuiceCup();
+
+        // 2. 累計本題失誤並扣減愛心
+        state.currentProblemMistakes++;
+        const remainingHearts = Math.max(0, 3 - state.currentProblemMistakes);
+        renderHearts(remainingHearts);
+
+        // 3. 欄位抖動與音效
         targetEl.innerText = digit;
         targetEl.classList.add('error');
-        
-        document.getElementById('helperGuideText').innerText = `哎呀，再想一想喔！${currentStep.desc}`;
-        
-        setTimeout(() => {
-          targetEl.innerText = '';
-          targetEl.classList.remove('error');
-        }, 550);
+
+        // 4. 啟動防狂按/盲猜鎖定 900 毫秒
+        state.isInputLocked = true;
+        const keypad = document.getElementById('keypadCard');
+        if (keypad) keypad.classList.add('locked');
+
+        const lockNotice = document.getElementById('keypadLockNotice');
+        if (lockNotice) {
+          lockNotice.innerText = `⚠️ 算錯扣 1 杯果汁！請想清楚再按 (剩 ${remainingHearts} 心・冷卻中...)`;
+        }
+
+        document.getElementById('helperGuideText').innerText = `⚠️ 算錯扣 1 杯果汁！再想一想喔：${currentStep.desc}`;
+
+        // 5. 若失誤達 3 次（本題酸掉失敗）
+        if (state.currentProblemMistakes >= 3) {
+          setTimeout(() => {
+            targetEl.innerText = '';
+            targetEl.classList.remove('error');
+            handleProblemFailed();
+          }, 650);
+        } else {
+          setTimeout(() => {
+            targetEl.innerText = '';
+            targetEl.classList.remove('error');
+            state.isInputLocked = false;
+            if (keypad) keypad.classList.remove('locked');
+          }, 900);
+        }
       }
     }
 
+    function handleProblemFailed() {
+      state.isInputLocked = true;
+      state.failedCups++;
+      saveCurrentData();
+
+      sound.playFailed();
+
+      const a = state.currentProblem.a;
+      const b = state.currentProblem.b;
+      const product = a * b;
+
+      const formulaText = document.getElementById('failedFormulaText');
+      if (formulaText) {
+        formulaText.innerText = `${a} × ${b} ＝ ${product}`;
+      }
+
+      document.getElementById('failedModal').classList.add('show');
+    }
+
     function handleClearKey() {
+      if (state.isInputLocked) return;
       sound.playClick();
       if (state.currentStepIdx < state.steps.length) {
         const currentStep = state.steps[state.currentStepIdx];
@@ -2332,6 +2678,7 @@
     }
 
     function handleHintKey() {
+      if (state.isInputLocked) return;
       sound.playClick();
       if (state.currentStepIdx < state.steps.length) {
         const currentStep = state.steps[state.currentStepIdx];
@@ -2345,6 +2692,15 @@
 
       // 核心累計：果汁杯數 + 1！
       state.juiceCups++;
+      state.totalEarnedCups++;
+
+      // 判定評星品質
+      let starInfo = { stars: "⭐⭐⭐", desc: "零失誤滿分特調！" };
+      if (state.currentProblemMistakes === 1) {
+        starInfo = { stars: "⭐⭐", desc: "僅 1 次小失誤，表現優異！" };
+      } else if (state.currentProblemMistakes === 2) {
+        starInfo = { stars: "⭐", desc: "及格過關，差一點就酸掉囉！" };
+      }
 
       // 取得本次獲得的特調果汁
       const juiceInfo = JUICE_CATALOG[(state.juiceCups - 1) % JUICE_CATALOG.length];
@@ -2353,23 +2709,24 @@
         name: juiceInfo.name,
         icon: juiceInfo.icon,
         color: juiceInfo.color,
+        stars: starInfo.stars,
         formula: `${state.currentProblem.a} × ${state.currentProblem.b} = ${state.currentProblem.a * state.currentProblem.b}`
       };
       state.juicesCollected.unshift(record);
       saveCurrentData();
 
-      const prof = getProficiencyData(state.juiceCups);
+      const prof = getProficiencyData(state.juiceCups, state.totalLostCups);
 
       document.getElementById('stepBadge').innerText = '🎉 挑戰成功！';
       document.getElementById('helperGuideText').innerText = `太厲害了！${record.formula} 完全正確！成功調配出第 ${state.juiceCups} 杯果汁！`;
-      document.getElementById('helperFormula').innerText = `🥤 總累積：${state.juiceCups} 杯 (${prof.level})`;
+      document.getElementById('helperFormula').innerText = `🥤 現存果汁：${state.juiceCups} 杯 (${prof.level})`;
 
       setTimeout(() => {
-        showVictoryModal(record, prof);
+        showVictoryModal(record, prof, starInfo);
       }, 600);
     }
 
-    function showVictoryModal(record, prof) {
+    function showVictoryModal(record, prof, starInfo) {
       if (!record) {
         const juiceInfo = JUICE_CATALOG[Math.max(0, (state.juiceCups - 1) % JUICE_CATALOG.length)];
         record = {
@@ -2379,23 +2736,57 @@
           formula: `${state.currentProblem.a} × ${state.currentProblem.b}`
         };
       }
-      if (!prof) prof = getProficiencyData(state.juiceCups);
+      if (!prof) prof = getProficiencyData(state.juiceCups, state.totalLostCups);
+      if (!starInfo) {
+        starInfo = { stars: "⭐⭐⭐", desc: "零失誤滿分特調！" };
+      }
+
+      const starsEl = document.getElementById('victoryStars');
+      if (starsEl) starsEl.innerText = starInfo.stars;
+
+      const qualityEl = document.getElementById('victoryQualityText');
+      if (qualityEl) qualityEl.innerText = starInfo.desc;
 
       document.getElementById('modalCurrentJuiceNum').innerText = state.juiceCups;
       document.getElementById('rewardJuiceText').innerText = `🥤 獲得「${record.icon} ${record.name}」！`;
       
       document.getElementById('evalJuiceTotal').innerText = state.juiceCups;
-      document.getElementById('evalProficiencyBadge').innerText = `${prof.icon} ${prof.level} (${prof.percent})`;
+      
+      const lostEl = document.getElementById('evalLostTotal');
+      if (lostEl) lostEl.innerText = `${state.totalLostCups} 杯`;
+
+      document.getElementById('evalProficiencyBadge').innerText = prof.badge;
       document.getElementById('evalCommentText').innerText = `💡 教師評定：${prof.comment}`;
 
       document.getElementById('victoryModal').classList.add('show');
     }
 
     function showJuiceShelfModal() {
-      const prof = getProficiencyData(state.juiceCups);
+      const prof = getProficiencyData(state.juiceCups, state.totalLostCups);
       document.getElementById('shelfStudentName').innerText = state.studentName;
       document.getElementById('shelfTotalCups').innerText = `${state.juiceCups} 杯`;
-      document.getElementById('shelfProficiencyBadge').innerText = `${prof.icon} ${prof.level} (${prof.percent})`;
+      
+      const lostEl = document.getElementById('shelfLostCups');
+      if (lostEl) lostEl.innerText = `${state.totalLostCups} 杯`;
+
+      const earnedEl = document.getElementById('shelfEarnedCups');
+      if (earnedEl) earnedEl.innerText = `${state.totalEarnedCups} 杯`;
+
+      document.getElementById('shelfProficiencyBadge').innerText = prof.badge;
+
+      // 教學評估診斷
+      const diagEl = document.getElementById('shelfDiagnosisText');
+      if (diagEl) {
+        if (state.totalEarnedCups === 0 && state.totalLostCups === 0) {
+          diagEl.innerText = "💡 尚未進行答題，點擊下方「繼續挑戰」開始調配果汁吧！";
+        } else if (state.totalLostCups > state.totalEarnedCups) {
+          diagEl.innerHTML = `<span style="color:#DC2626; font-weight:800;">⚠️ 學習診斷警示：</span>算錯扣除（${state.totalLostCups} 杯）高於調配成功數，學生可能在鍵盤隨意盲按猜題！請輔導學生放慢速度，觀看上方【課本錢幣表徵】托盤，或切換為【💡 引導模式】逐步練習！`;
+        } else if (state.totalLostCups === 0 && state.totalEarnedCups >= 3) {
+          diagEl.innerHTML = `<span style="color:#16A34A; font-weight:800;">🌟 學習診斷極佳：</span>完全零失誤！運算極為精確紮實，已完全掌握小三乘法直式！`;
+        } else {
+          diagEl.innerHTML = `<span style="color:#2563EB; font-weight:800;">👍 學習診斷進步中：</span>已成功調配 ${state.totalEarnedCups} 杯（算錯扣除 ${state.totalLostCups} 杯），繼續保持細心，注意進位技巧即可調配更多美味果汁！`;
+        }
+      }
 
       const container = document.getElementById('juiceShelfContainer');
       container.innerHTML = '';
@@ -2403,7 +2794,7 @@
       if (state.juicesCollected.length === 0) {
         container.innerHTML = `
           <div style="grid-column: 1 / -1; padding: 30px; text-align: center; color: #94A3B8; font-weight: bold;">
-            🥤 目前這台平板還沒有調配好的果汁喔！<br>趕快開始計算直式乘法，調製你的第 1 杯果汁吧！
+            🥤 目前這台平板還沒有現存的特調果汁喔！<br>仔細動腦計算直式乘法，調製你的第 1 杯果汁吧！
           </div>
         `;
       } else {
@@ -2413,6 +2804,7 @@
           card.innerHTML = `
             <div class="cup-icon">${item.icon}</div>
             <div class="cup-name">${item.name}</div>
+            <div style="font-size: 0.78rem; color: #D97706; font-weight: 800; margin: 2px 0;">${item.stars || '⭐⭐⭐'}</div>
             <div class="cup-source">第 ${item.num} 杯・${item.formula}</div>
           `;
           container.appendChild(card);
@@ -2579,13 +2971,29 @@
       // 老師重置平板杯數
       document.getElementById('btnResetCups').addEventListener('click', () => {
         sound.playClick();
-        const ok = confirm("【教師管理確認】\n確定要清空本台平板所有的果汁累積杯數，交由下一位學生重新開始測驗嗎？");
+        const ok = confirm("【教師管理確認】\n確定要清空本台平板所有的果汁累積杯數與紀錄，交由下一位學生重新開始測驗嗎？");
         if (ok) {
           state.juiceCups = 0;
+          state.totalEarnedCups = 0;
+          state.totalLostCups = 0;
+          state.failedCups = 0;
           state.juicesCollected = [];
           saveCurrentData();
           showJuiceShelfModal();
         }
+      });
+
+      // 失敗彈窗事件綁定
+      document.getElementById('btnRetryFailed').addEventListener('click', () => {
+        sound.playClick();
+        document.getElementById('failedModal').classList.remove('show');
+        loadProblem(state.currentProblem);
+      });
+
+      document.getElementById('btnNextFailed').addEventListener('click', () => {
+        sound.playClick();
+        document.getElementById('failedModal').classList.remove('show');
+        nextProblem();
       });
 
       // 學生姓名變更時即時儲存至平板
@@ -2604,7 +3012,7 @@
       // 榮譽獎狀展示
       document.getElementById('btnShowCert').addEventListener('click', () => {
         sound.playClick();
-        const prof = getProficiencyData(state.juiceCups);
+        const prof = getProficiencyData(state.juiceCups, state.totalLostCups);
         document.getElementById('certStudentName').innerText = state.studentName;
         const certCupsEl = document.getElementById('certJuiceCups');
         if (certCupsEl) certCupsEl.innerText = state.juiceCups;
