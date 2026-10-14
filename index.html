@@ -842,6 +842,53 @@
       background: #E2E8F0;
     }
 
+    /* 頂部顯著模式切換器 [引導模式 / 自由挑戰] */
+    .mode-selection-bar {
+      width: 100%;
+      max-width: 900px;
+      background: #FFFFFF;
+      border: 3px solid #E2E8F0;
+      border-radius: 18px;
+      padding: 10px 16px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      box-shadow: 0 4px 0 #CBD5E1;
+      box-sizing: border-box;
+    }
+
+    .mode-selection-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .mode-selection-title .icon {
+      font-size: 1.5rem;
+    }
+
+    .mode-selection-title .main-txt {
+      font-weight: 900;
+      font-size: 0.95rem;
+      color: #1E293B;
+    }
+
+    .mode-selection-title .sub-txt {
+      font-size: 0.76rem;
+      color: #64748B;
+      font-weight: 700;
+    }
+
+    @media (max-width: 720px) {
+      .mode-selection-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+      }
+    }
+
     /* 模式切換器：[引導模式 / 自由挑戰] 分段控制器 */
     .mode-segmented-box {
       background: #F1F5F9;
@@ -1124,31 +1171,52 @@
       outline: none;
     }
 
-    /* 模式提示小標 */
+    /* 模式提示小標（支援點擊直接切換） */
     .mode-badge {
       display: inline-flex;
       align-items: center;
       gap: 4px;
-      font-size: 0.78rem;
+      font-size: 0.8rem;
       font-weight: 800;
-      padding: 3px 8px;
+      padding: 4px 10px;
       border-radius: 999px;
-      background: #E0E7FF;
-      color: #4338CA;
+      background: #FEF3C7;
+      color: #B45309;
+      border: 2px solid #F59E0B;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
     }
 
-    /* 課本錢幣表徵容器（完全對應課本附件教具圖示） */
+    .mode-badge:hover {
+      transform: scale(1.04);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.14);
+    }
+
+    .mode-badge:active {
+      transform: scale(0.96);
+    }
+
+    .badge-toggle-hint {
+      font-size: 0.72rem;
+      opacity: 0.85;
+      font-weight: 700;
+    }
+
+    /* 課本錢幣表徵容器（完全對應課本附件教具圖示・一覽可見不需滾輪） */
     .coin-helpers {
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
       width: 100%;
-      max-width: 440px;
+      max-width: 470px;
       margin-top: 10px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       background: #FFFDF5;
       border-radius: 14px;
       border: 1.5px dashed #F59E0B;
+      box-sizing: border-box;
     }
 
     .coin-helper-title-bar {
@@ -1158,16 +1226,19 @@
       font-size: 0.8rem;
       font-weight: 800;
       color: #92400E;
+      padding-bottom: 2px;
     }
 
     .coin-groups-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      justify-content: flex-start;
-      max-height: 160px;
-      overflow-y: auto;
-      padding: 2px;
+      display: grid;
+      grid-template-columns: repeat(var(--coin-cols, 3), 1fr);
+      gap: 6px;
+      width: 100%;
+      box-sizing: border-box;
+      /* 關鍵：取消固定限高與滾輪，一覽可見全部托盤！ */
+      max-height: none;
+      overflow: visible;
+      padding: 2px 0;
     }
 
     /* 每一份的托盤卡片（對應課本的一組／一份，如：[36元]） */
@@ -1175,47 +1246,78 @@
       background: #FFFFFF;
       border: 1.5px solid #FCD34D;
       border-radius: 10px;
-      padding: 5px 6px;
-      box-shadow: 0 2px 3px rgba(0, 0, 0, 0.05);
+      padding: 4px 4px 6px;
+      box-shadow: 0 1.5px 3px rgba(0, 0, 0, 0.05);
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 3px;
+      min-width: 0;
+      box-sizing: border-box;
     }
 
     .coin-group-label {
-      font-size: 0.72rem;
+      font-size: 0.68rem;
       font-weight: 800;
       color: #B45309;
       background: #FEF3C7;
       padding: 1px 6px;
       border-radius: 999px;
+      white-space: nowrap;
     }
 
     .coin-group-coins {
       display: flex;
       flex-wrap: wrap;
-      gap: 3px;
+      gap: 2.5px;
       justify-content: center;
-      max-width: 130px;
+      width: 100%;
     }
 
     .coin-token {
-      width: 25px;
-      height: 25px;
+      width: 21px;
+      height: 21px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.65rem;
+      font-size: 0.62rem;
       font-weight: 900;
-      box-shadow: 0 1.5px 2px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
       flex-shrink: 0;
     }
 
-    .coin-100 { background: #E0E7FF; color: #3730A3; border: 1.5px solid #818CF8; }
-    .coin-10  { background: #FEF08A; color: #854D0E; border: 1.5px solid #EAB308; }
-    .coin-1   { background: #F1F5F9; color: #334155; border: 1.5px solid #94A3B8; }
+    .coin-100 { 
+      background: #E0E7FF; 
+      color: #3730A3; 
+      border: 1.5px solid #818CF8; 
+      font-size: 0.54rem; 
+      letter-spacing: -0.5px;
+    }
+    .coin-10  { 
+      background: #FEF08A; 
+      color: #854D0E; 
+      border: 1.5px solid #EAB308; 
+    }
+    .coin-1   { 
+      background: #F1F5F9; 
+      color: #334155; 
+      border: 1.5px solid #94A3B8; 
+    }
+
+    @media (max-width: 520px) {
+      .coin-groups-container {
+        grid-template-columns: repeat(auto-fit, minmax(92px, 1fr)) !important;
+      }
+      .coin-token {
+        width: 19px;
+        height: 19px;
+        font-size: 0.58rem;
+      }
+      .coin-100 {
+        font-size: 0.5rem;
+      }
+    }
 
     .coin-summary-row {
       font-size: 0.76rem;
@@ -1277,6 +1379,25 @@
     </div>
   </header>
 
+  <!-- 核心模式切換器：[ 💡 引導模式 / ⚡ 自由挑戰 ] -->
+  <div class="mode-selection-bar" id="topModeSelectionBar">
+    <div class="mode-selection-title">
+      <span class="icon">🎯</span>
+      <div>
+        <div class="main-txt">直式計算模式選擇</div>
+        <div class="sub-txt">自由挑戰模式下絕不顯示答案小抄，靠自己實力計算調配果汁！</div>
+      </div>
+    </div>
+    <div class="mode-segmented-box" id="topModeSegmentedGroup">
+      <button type="button" class="mode-segmented-btn" id="topBtnModeGuided" title="顯示口訣與逐步運算引導">
+        <span>💡</span> 引導模式 (教學步步引導)
+      </button>
+      <button type="button" class="mode-segmented-btn mode-free active" id="topBtnModeFree" title="不顯示答案小抄，靠實力獨立心算">
+        <span>⚡</span> 自由挑戰 (無答案小抄・實力測驗)
+      </button>
+    </div>
+  </div>
+
   <!-- 關卡分頁切換 -->
   <nav class="tab-nav">
     <button class="tab-btn active" data-mode="adventure" id="tabAdventure">
@@ -1306,7 +1427,9 @@
           <div class="story-desc" id="scenarioDesc">全家一起逛夜市！玩一次彈珠臺要 20 元，品睿玩了 3 次，共花了多少元？</div>
         </div>
         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 5px;">
-          <div class="mode-badge" id="modeBadge">💡 引導模式</div>
+          <div class="mode-badge" id="modeBadge" role="button" title="點擊切換 [引導模式 / 自由挑戰]">
+            ⚡ 自由挑戰 <span class="badge-toggle-hint">(點擊切換💡)</span>
+          </div>
           <div class="heart-badge" id="problemHeartBadge" title="本題調配純度：有 3 次機會，失誤 3 次果汁會酸掉喔！">
             <span style="font-size: 0.72rem; color: #BE123C; margin-right: 2px;">純度:</span>
             <span id="heartIcons">❤️❤️❤️</span>
@@ -1387,9 +1510,9 @@
           <path d="M 44 62 Q 50 70 56 62" fill="none" stroke="#431407" stroke-width="3" stroke-linecap="round"/>
         </svg>
         <div class="helper-content">
-          <span class="helper-step-badge" id="stepBadge">步驟 1：算個位</span>
-          <div class="helper-text" id="helperGuideText">我們先算個位喔！乘數和個位相乘是多少呢？</div>
-          <div class="helper-formula" id="helperFormula">3 × 0 = 0</div>
+          <span class="helper-step-badge" id="stepBadge">⚡ 自由挑戰（步驟 1：算個位）</span>
+          <div class="helper-text" id="helperGuideText">請動腦算算看，在發亮的格子填入計算答案！</div>
+          <div class="helper-formula" id="helperFormula" style="display: none;"></div>
         </div>
       </div>
 
@@ -2108,7 +2231,7 @@
        ==================================================================== */
     const state = {
       mode: 'adventure',      // 'adventure' | 'practice' | 'custom' | 'juiceBar'
-      guided: true,           // 是否為引導模式
+      guided: false,          // 預設為自由挑戰模式（不提供答案小抄）
       currentChapterIndex: 0,
       currentProblemIndex: 0,
       currentProblem: null,   // { a, b, story }
@@ -2125,6 +2248,71 @@
       studentName: '聰明小博士', // 平板學生姓名
       juicesCollected: []     // 已收集的果汁紀錄清單
     };
+
+    function syncGuidedModeUI() {
+      const topBtnGuided = document.getElementById('topBtnModeGuided');
+      const topBtnFree = document.getElementById('topBtnModeFree');
+      const btnGuided = document.getElementById('btnModeGuided');
+      const btnFree = document.getElementById('btnModeFree');
+      const badge = document.getElementById('modeBadge');
+
+      if (state.guided) {
+        if (topBtnGuided) topBtnGuided.classList.add('active');
+        if (topBtnFree) topBtnFree.classList.remove('active');
+        if (btnGuided) btnGuided.classList.add('active');
+        if (btnFree) btnFree.classList.remove('active');
+        if (badge) {
+          badge.innerHTML = '💡 引導模式 <span class="badge-toggle-hint">(點擊切換⚡自由挑戰)</span>';
+          badge.style.background = '#E0E7FF';
+          badge.style.color = '#4338CA';
+          badge.style.borderColor = '#818CF8';
+        }
+      } else {
+        if (topBtnGuided) topBtnGuided.classList.remove('active');
+        if (topBtnFree) topBtnFree.classList.add('active');
+        if (btnGuided) btnGuided.classList.remove('active');
+        if (btnFree) btnFree.classList.add('active');
+        if (badge) {
+          badge.innerHTML = '⚡ 自由挑戰 <span class="badge-toggle-hint">(無答案小抄・點擊切換💡)</span>';
+          badge.style.background = '#FEF3C7';
+          badge.style.color = '#B45309';
+          badge.style.borderColor = '#F59E0B';
+        }
+      }
+    }
+
+    function setGuidedMode(isGuided) {
+      sound.playClick();
+      state.guided = isGuided;
+      try {
+        localStorage.setItem('doudou_guided_mode', isGuided ? 'guided' : 'free');
+      } catch (e) {
+        console.warn('localStorage save error:', e);
+      }
+      syncGuidedModeUI();
+      if (typeof activateStep === 'function') {
+        activateStep(state.currentStepIdx);
+      }
+    }
+
+    function getFreeChallengePrompt(step) {
+      switch (step.field) {
+        case 'ans-one':
+          return '「算個位」：請動腦計算個位相乘是多少？在發亮的個位格填入數字。';
+        case 'carry-ten':
+          return '「記進位」：若個位相乘有滿十，請在十位上方記下進位數字。';
+        case 'ans-ten':
+          return '「算十位」：請動腦計算十位相乘再加上進位是多少？在發亮的十位格填入數字。';
+        case 'carry-hundred':
+          return '「記百位進位」：若十位計算有滿十，請在百位上方記下進位數字。';
+        case 'ans-hundred':
+          return '「算百位」：請動腦計算百位相乘加上進位是多少？在發亮的百位格填入數字。';
+        case 'ans-thousand':
+          return '「寫千位」：百位計算完成，請在千位格填入進位到千位的數字。';
+        default:
+          return `請動腦想一想：現在要「${step.name}」，應該填入什麼數字呢？`;
+      }
+    }
 
     function loadSavedData() {
       try {
@@ -2145,10 +2333,18 @@
 
         const savedList = localStorage.getItem('doudou_juice_list');
         if (savedList) state.juicesCollected = JSON.parse(savedList);
+
+        const savedGuided = localStorage.getItem('doudou_guided_mode');
+        if (savedGuided !== null) {
+          state.guided = (savedGuided === 'guided');
+        } else {
+          state.guided = false; // 預設自由挑戰
+        }
       } catch (e) {
         console.warn('localStorage read error:', e);
       }
       updateJuiceUI();
+      syncGuidedModeUI();
     }
 
     function saveCurrentData() {
@@ -2159,6 +2355,7 @@
         localStorage.setItem('doudou_failed_cups', state.failedCups);
         localStorage.setItem('doudou_student_name', state.studentName);
         localStorage.setItem('doudou_juice_list', JSON.stringify(state.juicesCollected));
+        localStorage.setItem('doudou_guided_mode', state.guided ? 'guided' : 'free');
       } catch (e) {
         console.warn('localStorage save error:', e);
       }
@@ -2439,6 +2636,9 @@
       // 渲染錢幣輔助圖像
       renderCoinHelper(prob.a, prob.b);
 
+      // 同步模式 UI 標籤與狀態
+      syncGuidedModeUI();
+
       // 設定初始焦點
       activateStep(0);
     }
@@ -2465,6 +2665,16 @@
       // 分組展示容器：展示精確的 b 組托盤，每組包含真實無缺的硬幣數量
       const groupsContainer = document.createElement('div');
       groupsContainer.className = 'coin-groups-container';
+
+      // 依份數 b 自動分配最佳欄數，保證全部托盤一覽可見不需滾輪
+      let cols = 3;
+      if (b <= 3) cols = b;
+      else if (b === 4) cols = 4;
+      else if (b === 5 || b === 6) cols = 3;
+      else if (b === 7 || b === 8) cols = 4;
+      else if (b >= 9) cols = 3;
+
+      groupsContainer.style.setProperty('--coin-cols', cols);
 
       for (let g = 1; g <= b; g++) {
         const tray = document.createElement('div');
@@ -2511,24 +2721,6 @@
 
       container.appendChild(groupsContainer);
 
-      // 課本算理摘要欄：精確統計每個幣別的總個數與乘法關係
-      const summaryRow = document.createElement('div');
-      summaryRow.className = 'coin-summary-row';
-      
-      const parts = [];
-      if (hundreds > 0) {
-        parts.push(`100元：每份${hundreds}個 × ${b}份 ＝ 共${hundreds * b}個 (${hundreds * b * 100}元)`);
-      }
-      if (tens > 0) {
-        parts.push(`10元：每份${tens}個 × ${b}份 ＝ 共${tens * b}個 (${tens * b * 10}元)`);
-      }
-      if (ones > 0) {
-        parts.push(`1元：每份${ones}個 × ${b}份 ＝ 共${ones * b}個 (${ones * b}元)`);
-      }
-      parts.push(`總共：${a * b}元`);
-
-      summaryRow.innerHTML = parts.map(p => `<span>🔹 ${p}</span>`).join(' ');
-      container.appendChild(summaryRow);
     }
 
     function activateStep(stepIdx) {
@@ -2547,15 +2739,26 @@
       const step = state.steps[stepIdx];
       state.activeTarget = step.targetId;
 
-      // 更新提示小助手文字（區分引導模式與自由挑戰）
+      // 更新提示小助手文字（嚴格區分引導模式與自由挑戰）
+      const stepBadge = document.getElementById('stepBadge');
+      const helperGuideText = document.getElementById('helperGuideText');
+      const helperFormula = document.getElementById('helperFormula');
+
       if (state.guided) {
-        document.getElementById('stepBadge').innerText = `步驟 ${stepIdx + 1}：${step.name}`;
-        document.getElementById('helperGuideText').innerText = step.desc;
-        document.getElementById('helperFormula').innerText = step.formula;
+        if (stepBadge) stepBadge.innerText = `💡 引導步驟 ${stepIdx + 1}：${step.name}`;
+        if (helperGuideText) helperGuideText.innerText = step.desc;
+        if (helperFormula) {
+          helperFormula.style.display = 'inline-block';
+          helperFormula.innerText = step.formula;
+        }
       } else {
-        document.getElementById('stepBadge').innerText = `⚡ 自由挑戰（第 ${stepIdx + 1} 步）`;
-        document.getElementById('helperGuideText').innerText = `請動腦想一想：現在要${step.name}，答案是多少呢？`;
-        document.getElementById('helperFormula').innerText = '💪 自由思考不看小抄（需要提示可點💡）';
+        // 自由挑戰模式：完全隱藏運算式小抄！文字絕不透漏任何數字與答案！
+        if (stepBadge) stepBadge.innerText = `⚡ 自由挑戰（步驟 ${stepIdx + 1}：${step.name}）`;
+        if (helperGuideText) helperGuideText.innerText = getFreeChallengePrompt(step);
+        if (helperFormula) {
+          helperFormula.style.display = 'none';
+          helperFormula.innerText = '';
+        }
       }
 
       // 點亮當前目標輸入格
@@ -2628,7 +2831,12 @@
           lockNotice.innerText = `⚠️ 算錯扣 1 杯果汁！請想清楚再按 (剩 ${remainingHearts} 心・冷卻中...)`;
         }
 
-        document.getElementById('helperGuideText').innerText = `⚠️ 算錯扣 1 杯果汁！再想一想喔：${currentStep.desc}`;
+        if (state.guided) {
+          document.getElementById('helperGuideText').innerText = `⚠️ 算錯扣 1 杯果汁！再想一想喔：${currentStep.desc}`;
+        } else {
+          // 自由挑戰模式：算錯扣果汁，但絕對不透漏答案與計算過程！
+          document.getElementById('helperGuideText').innerText = `⚠️ 算錯扣 1 杯果汁！請先在草稿紙或心算確認後再輸入喔！`;
+        }
 
         // 5. 若失誤達 3 次（本題酸掉失敗）
         if (state.currentProblemMistakes >= 3) {
@@ -2682,7 +2890,12 @@
       sound.playClick();
       if (state.currentStepIdx < state.steps.length) {
         const currentStep = state.steps[state.currentStepIdx];
-        document.getElementById('helperGuideText').innerText = `💡 小提示：這一步的正確答案是 ${currentStep.expected} 喔！`;
+        if (state.guided) {
+          document.getElementById('helperGuideText').innerText = `💡 引導小提示：這一步的正確答案是 ${currentStep.expected} 喔！`;
+        } else {
+          // 自由挑戰模式：提示只提供解題方向，絕不透漏答案！
+          document.getElementById('helperGuideText').innerText = `💡 思考方向：請仔細對齊位數相乘，如果前面有進位記得加上去喔！`;
+        }
       }
     }
 
@@ -2861,35 +3074,21 @@
         loadProblem(state.currentProblem);
       });
 
-      // 模式切換邏輯：[引導模式 / 自由挑戰]
-      function setGuidedMode(isGuided) {
-        sound.playClick();
-        state.guided = isGuided;
+      // 模式切換按鈕綁定（頂部、側邊欄與標籤皆聯動）
+      const topBtnGuided = document.getElementById('topBtnModeGuided');
+      if (topBtnGuided) topBtnGuided.addEventListener('click', () => setGuidedMode(true));
 
-        const btnGuided = document.getElementById('btnModeGuided');
-        const btnFree = document.getElementById('btnModeFree');
-        const badge = document.getElementById('modeBadge');
+      const topBtnFree = document.getElementById('topBtnModeFree');
+      if (topBtnFree) topBtnFree.addEventListener('click', () => setGuidedMode(false));
 
-        if (state.guided) {
-          btnGuided.classList.add('active');
-          btnFree.classList.remove('active');
-          badge.innerText = '💡 引導模式';
-          badge.style.background = '#E0E7FF';
-          badge.style.color = '#4338CA';
-        } else {
-          btnGuided.classList.remove('active');
-          btnFree.classList.add('active');
-          badge.innerText = '⚡ 自由挑戰';
-          badge.style.background = '#FEF3C7';
-          badge.style.color = '#B45309';
-        }
+      const btnModeGuided = document.getElementById('btnModeGuided');
+      if (btnModeGuided) btnModeGuided.addEventListener('click', () => setGuidedMode(true));
 
-        // 重新更新當前步驟引導顯示
-        activateStep(state.currentStepIdx);
-      }
+      const btnModeFree = document.getElementById('btnModeFree');
+      if (btnModeFree) btnModeFree.addEventListener('click', () => setGuidedMode(false));
 
-      document.getElementById('btnModeGuided').addEventListener('click', () => setGuidedMode(true));
-      document.getElementById('btnModeFree').addEventListener('click', () => setGuidedMode(false));
+      const modeBadge = document.getElementById('modeBadge');
+      if (modeBadge) modeBadge.addEventListener('click', () => setGuidedMode(!state.guided));
 
       // 關卡快捷點選
       document.querySelectorAll('.level-dot').forEach(dot => {
