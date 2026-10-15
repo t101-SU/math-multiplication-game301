@@ -2235,6 +2235,8 @@
       currentChapterIndex: 0,
       currentProblemIndex: 0,
       currentProblem: null,   // { a, b, story }
+      currentProblemAwarded: false, // 核心機制：本題是否已發放過果汁（1題最多1杯）
+      awardedProblemKeys: [], // 曾發放過果汁的題目清單（防止洗杯數）
       steps: [],              // 計算步驟序列
       currentStepIdx: 0,      // 當前步驟
       userInputs: {},         // 各欄位已填入的值
@@ -2248,6 +2250,17 @@
       studentName: '聰明小博士', // 平板學生姓名
       juicesCollected: []     // 已收集的果汁紀錄清單
     };
+
+    function getProblemKey(prob) {
+      if (!prob) return 'unknown_prob';
+      if (state.mode === 'adventure') {
+        return `ch_${state.currentChapterIndex}_p_${state.currentProblemIndex}`;
+      }
+      if (!prob.uid) {
+        prob.uid = `prob_${prob.a}x${prob.b}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
+      }
+      return prob.uid;
+    }
 
     function syncGuidedModeUI() {
       const topBtnGuided = document.getElementById('topBtnModeGuided');
@@ -2334,6 +2347,15 @@
         const savedList = localStorage.getItem('doudou_juice_list');
         if (savedList) state.juicesCollected = JSON.parse(savedList);
 
+        const savedAwarded = localStorage.getItem('doudou_awarded_problems');
+        if (savedAwarded) {
+          try {
+            state.awardedProblemKeys = JSON.parse(savedAwarded);
+          } catch (e) {
+            state.awardedProblemKeys = [];
+          }
+        }
+
         const savedGuided = localStorage.getItem('doudou_guided_mode');
         if (savedGuided !== null) {
           state.guided = (savedGuided === 'guided');
@@ -2355,6 +2377,7 @@
         localStorage.setItem('doudou_failed_cups', state.failedCups);
         localStorage.setItem('doudou_student_name', state.studentName);
         localStorage.setItem('doudou_juice_list', JSON.stringify(state.juicesCollected));
+        localStorage.setItem('doudou_awarded_problems', JSON.stringify(state.awardedProblemKeys));
         localStorage.setItem('doudou_guided_mode', state.guided ? 'guided' : 'free');
       } catch (e) {
         console.warn('localStorage save error:', e);
@@ -2594,6 +2617,7 @@
       state.userInputs = {};
       state.currentProblemMistakes = 0;
       state.isInputLocked = false;
+      state.currentProblemAwarded = false; // 確保每題單次獲獎狀態獨立
 
       // 解鎖鍵盤
       const keypad = document.getElementById('keypadCard');
@@ -2731,11 +2755,14 @@
 
       if (stepIdx >= state.steps.length) {
         // 全題完成！
+        state.currentStepIdx = state.steps.length;
+        state.isInputLocked = true;
         finishProblem();
         return;
       }
 
       state.currentStepIdx = stepIdx;
+      state.isInputLocked = false;
       const step = state.steps[stepIdx];
       state.activeTarget = step.targetId;
 
@@ -2779,6 +2806,7 @@
     function handleInputNumber(digit) {
       if (state.isInputLocked) return;
       if (state.currentStepIdx >= state.steps.length) return;
+      if (state.currentProblemAwarded) return;
 
       const currentStep = state.steps[state.currentStepIdx];
       const targetEl = document.getElementById(currentStep.targetId);
@@ -2788,6 +2816,9 @@
 
       if (digit === currentStep.expected) {
         // 答對了！
+        // 核心防狂按連點：立即鎖定輸入，防止連擊重複送出或洗果汁！
+        state.isInputLocked = true;
+
         targetEl.innerText = digit;
         targetEl.classList.remove('active-input', 'error');
 
@@ -2802,10 +2833,21 @@
         state.userInputs[currentStep.field] = digit;
         state.score += 10;
 
-        // 前進下一個步驟（十位或百位）
-        setTimeout(() => {
-          activateStep(state.currentStepIdx + 1);
-        }, 320);
+        const nextStepIdx = state.currentStepIdx + 1;
+
+        if (nextStepIdx >= state.steps.length) {
+          // 本題最後一步，立即將 currentStepIdx 設為最大，徹底阻絕重複輸入！
+          state.currentStepIdx = state.steps.length;
+          setTimeout(() => {
+            activateStep(nextStepIdx);
+          }, 320);
+        } else {
+          // 前進下一個步驟（十位或百位）
+          setTimeout(() => {
+            state.isInputLocked = false;
+            activateStep(nextStepIdx);
+          }, 320);
+        }
 
       } else {
         // 算錯或亂按了！
@@ -2877,6 +2919,7 @@
 
     function handleClearKey() {
       if (state.isInputLocked) return;
+      if (state.currentProblemAwarded) return;
       sound.playClick();
       if (state.currentStepIdx < state.steps.length) {
         const currentStep = state.steps[state.currentStepIdx];
@@ -2887,6 +2930,7 @@
 
     function handleHintKey() {
       if (state.isInputLocked) return;
+      if (state.currentProblemAwarded) return;
       sound.playClick();
       if (state.currentStepIdx < state.steps.length) {
         const currentStep = state.steps[state.currentStepIdx];
@@ -2900,12 +2944,20 @@
     }
 
     function finishProblem() {
+      // 核心防護：本題若已完成領獎，直接阻斷，嚴格保證 1 題最多只獲 1 杯果汁！
+      if (state.currentProblemAwarded) return;
+      state.currentProblemAwarded = true;
+      state.isInputLocked = true;
+
+      // 鎖定數字鍵盤卡片，防止任何多餘點擊
+      const keypad = document.getElementById('keypadCard');
+      if (keypad) keypad.classList.add('locked');
+
       sound.playVictory();
       confetti.burst();
 
-      // 核心累計：果汁杯數 + 1！
-      state.juiceCups++;
-      state.totalEarnedCups++;
+      const probKey = getProblemKey(state.currentProblem);
+      const isFirstTime = !state.awardedProblemKeys.includes(probKey);
 
       // 判定評星品質
       let starInfo = { stars: "⭐⭐⭐", desc: "零失誤滿分特調！" };
@@ -2915,23 +2967,49 @@
         starInfo = { stars: "⭐", desc: "及格過關，差一點就酸掉囉！" };
       }
 
-      // 取得本次獲得的特調果汁
-      const juiceInfo = JUICE_CATALOG[(state.juiceCups - 1) % JUICE_CATALOG.length];
-      const record = {
-        num: state.juiceCups,
-        name: juiceInfo.name,
-        icon: juiceInfo.icon,
-        color: juiceInfo.color,
-        stars: starInfo.stars,
-        formula: `${state.currentProblem.a} × ${state.currentProblem.b} = ${state.currentProblem.a * state.currentProblem.b}`
-      };
-      state.juicesCollected.unshift(record);
-      saveCurrentData();
+      let record;
+      let juiceInfo;
+
+      if (isFirstTime) {
+        // 首次完成此題：獲得 1 杯特調果汁！
+        state.awardedProblemKeys.push(probKey);
+        state.juiceCups++;
+        state.totalEarnedCups++;
+
+        juiceInfo = JUICE_CATALOG[(state.juiceCups - 1) % JUICE_CATALOG.length];
+        record = {
+          num: state.juiceCups,
+          name: juiceInfo.name,
+          icon: juiceInfo.icon,
+          color: juiceInfo.color,
+          stars: starInfo.stars,
+          formula: `${state.currentProblem.a} × ${state.currentProblem.b} = ${state.currentProblem.a * state.currentProblem.b}`
+        };
+        state.juicesCollected.unshift(record);
+        saveCurrentData();
+      } else {
+        // 該題先前已獲得過果汁（如按重新計算複習）：不重複給杯數，維持 1 題最多 1 杯！
+        juiceInfo = JUICE_CATALOG[Math.max(0, (state.juiceCups - 1) % JUICE_CATALOG.length)];
+        record = {
+          num: state.juiceCups,
+          name: juiceInfo.name,
+          icon: juiceInfo.icon,
+          color: juiceInfo.color,
+          stars: starInfo.stars,
+          formula: `${state.currentProblem.a} × ${state.currentProblem.b} = ${state.currentProblem.a * state.currentProblem.b}`,
+          alreadyAwarded: true
+        };
+        starInfo.desc += " (本題已領過果汁)";
+      }
 
       const prof = getProficiencyData(state.juiceCups, state.totalLostCups);
 
       document.getElementById('stepBadge').innerText = '🎉 挑戰成功！';
-      document.getElementById('helperGuideText').innerText = `太厲害了！${record.formula} 完全正確！成功調配出第 ${state.juiceCups} 杯果汁！`;
+      if (isFirstTime) {
+        document.getElementById('helperGuideText').innerText = `太厲害了！${record.formula} 完全正確！成功調配出第 ${state.juiceCups} 杯果汁！`;
+      } else {
+        document.getElementById('helperGuideText').innerText = `太厲害了！${record.formula} 再次全對！（本題已領過果汁，累積杯數維持 ${state.juiceCups} 杯）`;
+      }
       document.getElementById('helperFormula').innerText = `🥤 現存果汁：${state.juiceCups} 杯 (${prof.level})`;
 
       setTimeout(() => {
@@ -2961,7 +3039,11 @@
       if (qualityEl) qualityEl.innerText = starInfo.desc;
 
       document.getElementById('modalCurrentJuiceNum').innerText = state.juiceCups;
-      document.getElementById('rewardJuiceText').innerText = `🥤 獲得「${record.icon} ${record.name}」！`;
+      if (record && record.alreadyAwarded) {
+        document.getElementById('rewardJuiceText').innerText = `🥤 複習全對！此題先前已調配過「${record.icon} ${record.name}」囉！`;
+      } else {
+        document.getElementById('rewardJuiceText').innerText = `🥤 獲得「${record.icon} ${record.name}」！`;
+      }
       
       document.getElementById('evalJuiceTotal').innerText = state.juiceCups;
       
@@ -3029,6 +3111,11 @@
 
     function nextProblem() {
       sound.playClick();
+      if (state.mode === 'practice') {
+        const randomProb = generateRandomProblem();
+        loadProblem(randomProb);
+        return;
+      }
       const chapter = CHAPTERS[state.currentChapterIndex];
       state.currentProblemIndex++;
       if (state.currentProblemIndex >= chapter.problems.length) {
@@ -3177,6 +3264,7 @@
           state.totalLostCups = 0;
           state.failedCups = 0;
           state.juicesCollected = [];
+          state.awardedProblemKeys = [];
           saveCurrentData();
           showJuiceShelfModal();
         }
