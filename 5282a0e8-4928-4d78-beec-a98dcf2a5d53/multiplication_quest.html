@@ -1,0 +1,3387 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>讀題偵探團：破解應用題文字密碼</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    @keyframes popIn {
+      0% { transform: scale(0.94); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .animate-pop {
+      animation: popIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes beastFloat {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-8px) scale(1.05); }
+    }
+    .animate-beast-float {
+      animation: beastFloat 2.6s ease-in-out infinite;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.35); }
+      50% { box-shadow: 0 0 35px rgba(245, 158, 11, 0.75); }
+    }
+    .glow-pulse {
+      animation: pulseGlow 2s infinite ease-in-out;
+    }
+    .slot-box {
+      transition: all 0.2s ease;
+    }
+    .slot-box:hover {
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body class="bg-[var(--background)] text-[var(--foreground)] antialiased p-4 md:p-6 select-none">
+
+  <!-- Main App Container -->
+  <div class="max-w-4xl mx-auto space-y-4">
+
+    <!-- Top Header & Level Progress Bar -->
+    <header class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <!-- Game Title & Rank Badge -->
+        <div class="flex items-center gap-3">
+          <div id="rankIcon" class="w-12 h-12 rounded-2xl bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center text-2xl font-bold shadow-sm">
+            🔍
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 class="text-lg md:text-xl font-bold text-[var(--foreground)]">讀題偵探團：破解應用題文字密碼</h1>
+              <span id="rankTitleBadge" class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-[var(--secondary)] text-[var(--secondary-foreground)] border border-[var(--border)]">
+                Lv.1 見習讀題員
+              </span>
+            </div>
+            <p id="levelSubtitle" class="text-xs md:text-sm text-[var(--muted-foreground)] mt-0.5">
+              專注讀懂題目文字敘述、列出正確算式（電腦會幫你算答案，不用自己算喔！）
+            </p>
+          </div>
+        </div>
+
+        <!-- Stats: Stars Count, Beast Incubator, Sound & Level Map -->
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-500 border border-amber-500/30 flex items-center gap-1.5 text-sm font-bold shadow-sm">
+            <span>⭐ 收集星星：</span>
+            <span id="totalSolvedEl" class="text-base font-extrabold">0</span>
+            <span class="text-xs text-[var(--muted-foreground)]">/ 40</span>
+          </div>
+          <button onclick="openBeastModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/15 via-purple-500/15 to-indigo-500/15 text-[var(--foreground)] border border-amber-500/40 flex items-center gap-2 text-xs font-bold hover:scale-102 hover:border-amber-500/70 transition shadow-sm" title="點擊查看數學神獸孵化進度">
+            <span id="beastMiniIcon" class="text-base">🥚</span>
+            <span id="beastMiniStage">神獸蛋 (0%)</span>
+          </button>
+          <div id="comboBadge" class="hidden px-3 py-1.5 rounded-xl bg-amber-500/15 text-amber-500 border border-amber-500/30 items-center gap-1 text-sm font-bold">
+            🔥 連對 <span id="comboCountEl">0</span>
+          </div>
+          <button id="soundToggleBtn" onclick="toggleSound()" class="px-3 py-1.5 rounded-xl bg-[var(--secondary)] text-[var(--secondary-foreground)] border border-[var(--border)] text-xs font-medium hover:opacity-80 transition" title="切換音效">
+            🔊 音效開
+          </button>
+          <button onclick="toggleLevelSelector()" class="px-3 py-1.5 rounded-xl bg-[var(--secondary)] text-[var(--secondary-foreground)] border border-[var(--border)] text-xs font-medium hover:opacity-80 transition">
+            🗺️ 選關/題庫
+          </button>
+        </div>
+      </div>
+
+      <!-- Level Progress & Beast Incubation Dual Bar -->
+      <div class="mt-3 pt-3 border-t border-[var(--border)] grid grid-cols-1 md:grid-cols-2 gap-3">
+        <!-- Level Progress -->
+        <div>
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span id="xpProgressLabel" class="font-medium text-[var(--muted-foreground)]">本關解鎖進度</span>
+            <span id="xpFractionLabel" class="font-bold text-[var(--foreground)]">0 / 3 ⭐</span>
+          </div>
+          <div class="w-full h-2.5 bg-[var(--secondary)] rounded-full overflow-hidden border border-[var(--border)]">
+            <div id="xpBarFill" class="h-full bg-[var(--primary)] transition-all duration-500 rounded-full" style="width: 0%"></div>
+          </div>
+        </div>
+        <!-- Beast Incubation Progress -->
+        <div onclick="openBeastModal()" class="cursor-pointer group">
+          <div class="flex items-center justify-between text-xs mb-1">
+            <span class="font-bold text-amber-500 flex items-center gap-1">
+              <span>🔮 乘法神獸孵化進度</span>
+              <span id="beastEggStatusText" class="text-[11px] font-normal text-[var(--muted-foreground)]">（點擊查看）</span>
+            </span>
+            <span id="beastFractionLabel" class="font-bold text-amber-500">0 / 40 ⭐ (0%)</span>
+          </div>
+          <div class="w-full h-2.5 bg-[var(--secondary)] rounded-full overflow-hidden border border-amber-500/30">
+            <div id="beastBarFill" class="h-full bg-gradient-to-r from-amber-400 via-pink-500 to-purple-500 transition-all duration-500 rounded-full" style="width: 0%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Collapsible Level Map & Question Picker (Teacher / Free Jump) -->
+      <div id="levelMapPanel" class="hidden mt-3 pt-3 border-t border-[var(--border)] animate-pop space-y-3">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-semibold text-[var(--muted-foreground)]">🎯 點擊切換讀題挑戰等級（全關卡皆免計算，100% 聚焦文字理解與列式）：</span>
+          <button onclick="resetAllProgress()" class="text-xs text-rose-500 hover:underline">重置所有紀錄</button>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-5 gap-2" id="levelButtonsContainer"></div>
+        <div class="pt-2 border-t border-[var(--border)]">
+          <div class="text-xs font-semibold text-[var(--muted-foreground)] mb-1.5">📌 直接跳選本級題目：</div>
+          <div id="questionJumpContainer" class="flex flex-wrap gap-1.5"></div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Question & Interactive Area -->
+    <main class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+      <!-- Left / Main Column: Story Text + Visual Meaning Diagram (7 cols) -->
+      <section class="lg:col-span-7 space-y-4">
+        
+        <!-- Problem Card -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm relative overflow-hidden">
+          <!-- Category Tag & Question Switcher -->
+          <div class="flex items-center justify-between gap-2 mb-3 flex-wrap">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span id="sceneBadge" class="px-2.5 py-1 rounded-lg bg-[var(--secondary)] text-[var(--secondary-foreground)] text-xs font-semibold">
+                🏮 夜市任務
+              </span>
+              <span id="skillBadge" class="px-2.5 py-1 rounded-lg bg-[var(--secondary)] text-[var(--muted-foreground)] text-xs font-medium">
+                基礎語意理解
+              </span>
+              <span id="questionSolvedBadge" class="hidden px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-500 border border-amber-500/30 text-xs font-bold items-center gap-1">
+                ⭐ 本題已過關
+              </span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button onclick="prevQuestion()" class="px-2 py-0.5 rounded bg-[var(--secondary)] text-[var(--foreground)] border border-[var(--border)] text-xs hover:opacity-80" title="上一題">◀</button>
+              <span id="questionIndexLabel" class="text-xs font-medium text-[var(--muted-foreground)]">第 1 題</span>
+              <button onclick="nextQuestion()" class="px-2 py-0.5 rounded bg-[var(--secondary)] text-[var(--foreground)] border border-[var(--border)] text-xs hover:opacity-80" title="下一題">▶</button>
+              <button id="jumpUnsolvedBtn" onclick="jumpToNextUnsolvedQuestion()" class="hidden px-2 py-0.5 rounded-lg bg-amber-500 text-slate-950 font-bold text-xs hover:brightness-110 transition items-center gap-1 shadow-xs" title="前往尚未收集星星的題目">
+                🎯 補解缺星題
+              </button>
+            </div>
+          </div>
+
+          <!-- Quick Reminder Banner for Missing Stars -->
+          <div id="alreadySolvedNotice" class="hidden mb-3 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs flex flex-wrap items-center justify-between gap-2 animate-pop">
+            <div id="alreadySolvedNoticeText" class="font-medium text-[var(--foreground)] flex items-center gap-1">
+              ⭐ 本題先前已通關並獲得過星星！
+            </div>
+            <button onclick="jumpToNextUnsolvedQuestion()" class="px-2.5 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold hover:brightness-110 transition shadow-xs text-xs flex items-center gap-1">
+              <span>🎯 前往尚未收集星星的題目</span>
+              <span>➔</span>
+            </button>
+          </div>
+
+          <!-- Optional Store Promo Banner (for Unit Test Q5 Anniversary Gift Problems) -->
+          <div id="promoBannerBox" class="hidden mb-3 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs space-y-1">
+          </div>
+
+          <!-- Problem Text (Supports Interactive Color Highlighting when Hint is toggled!) -->
+          <div id="problemTextContainer" class="text-base md:text-lg font-semibold leading-relaxed text-[var(--foreground)] p-3.5 rounded-xl bg-[var(--secondary)]/60 border border-[var(--border)]">
+            載入題目中...
+          </div>
+
+          <!-- Color Legend when Highlight Hint is active -->
+          <div id="highlightLegend" class="hidden mt-2 flex flex-wrap items-center gap-3 text-xs px-1 animate-pop">
+            <span class="flex items-center gap-1 font-semibold text-emerald-500">
+              <span class="w-3 h-3 rounded bg-emerald-500 inline-block"></span> 綠色文字＝每 1 份的量（被乘數）
+            </span>
+            <span class="flex items-center gap-1 font-semibold text-sky-500">
+              <span class="w-3 h-3 rounded bg-sky-500 inline-block"></span> 藍色文字＝有幾份/幾倍（乘數）
+            </span>
+            <span class="flex items-center gap-1 font-semibold text-rose-500">
+              <span class="w-3 h-3 rounded bg-rose-500/40 inline-block"></span> 刪除線＝用不到的干擾資訊
+            </span>
+          </div>
+
+          <!-- Visual Meaning Diagram Box (Left-aligned, exact proportional CSS Grid!) -->
+          <div class="mt-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-semibold text-[var(--muted-foreground)] flex items-center gap-1">
+                👁️ 題意視覺化圖解（最左邊對齊、真實比例格線，一排一排看懂題目）
+              </span>
+              <button id="hintBtn" onclick="toggleHint()" class="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-500 border border-amber-500/30 text-xs font-semibold hover:bg-amber-500/25 transition">
+                🖍️ 點亮文字重點提示
+              </button>
+            </div>
+            <div id="visualDiagramBox" class="p-3 sm:p-4 rounded-xl bg-[var(--background)] border border-[var(--border)] min-h-[110px] flex flex-col justify-center overflow-hidden">
+              <!-- Dynamically rendered visual meaning diagram -->
+            </div>
+            <!-- Meaning Hint Box -->
+            <div id="hintBox" class="hidden mt-2 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs md:text-sm text-[var(--foreground)] animate-pop">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 1: Reading Comprehension / Text Meaning Check Card -->
+        <div id="step1Card" class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm md:text-base font-bold text-[var(--foreground)] flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] text-xs flex items-center justify-center font-bold">1</span>
+              <span id="step1Title">第一步：讀懂文字敘述，破解題意關鍵！</span>
+            </h2>
+            <span id="step1Status" class="text-xs font-semibold text-[var(--muted-foreground)]">請作答</span>
+          </div>
+
+          <div id="step1Content" class="space-y-3">
+            <!-- Dynamically populated reading comprehension questions -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Right Column: Step 2 Equation Builder & Step 3 Meaning Decision (5 cols) -->
+      <section class="lg:col-span-5 space-y-4">
+
+        <!-- Step 2: Equation Builder Card -->
+        <div id="step2Card" class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm md:text-base font-bold text-[var(--foreground)] flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] text-xs flex items-center justify-center font-bold">2</span>
+              <span id="step2Title">第二步：列出正確算式（免算答案）！</span>
+            </h2>
+            <button onclick="clearEquationSlots()" class="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] underline">
+              重新填入
+            </button>
+          </div>
+
+          <p id="step2Instruction" class="text-xs text-[var(--muted-foreground)] mb-3">
+            別急著看到數字就抓！請根據題意，把<strong class="text-emerald-500">「每 1 份的量」放前面</strong>、<strong class="text-sky-500">「有幾份/幾倍」放後面</strong>（列對後電腦會自動算出答案）：
+          </p>
+
+          <!-- Equation Slots Container -->
+          <div id="equationSlotsArea" class="space-y-3">
+            <!-- Dynamically rendered single-step or two-step equation slots -->
+          </div>
+
+          <!-- Number Cards Bank -->
+          <div class="mt-4 pt-3 border-t border-[var(--border)]">
+            <div class="text-xs font-medium text-[var(--muted-foreground)] mb-2">🔢 題目相關與干擾數字卡（點擊填入空格，小心別抓錯數字！）：</div>
+            <div id="numberCardsBank" class="flex flex-wrap gap-2">
+              <!-- Dynamically rendered clickable number tokens -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Situational Meaning Decision (Only for Lv.5 Gift / Enough Money / Estimation Logic) -->
+        <div id="step3Card" class="hidden bg-[var(--card)] border border-[var(--border)] rounded-2xl p-5 shadow-sm animate-pop">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="text-sm md:text-base font-bold text-[var(--foreground)] flex items-center gap-2">
+              <span class="w-6 h-6 rounded-full bg-[var(--primary)] text-[var(--primary-foreground)] text-xs flex items-center justify-center font-bold">3</span>
+              <span id="step3Title">第三步：根據題意做出生活判斷！</span>
+            </h2>
+          </div>
+          <div id="step3Content" class="space-y-3">
+            <!-- Dynamically populated for Lv.5 decision -->
+          </div>
+        </div>
+
+        <!-- Action Button & Diagnostic Feedback Area -->
+        <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-4 shadow-sm space-y-3">
+          <button id="submitCheckBtn" onclick="checkCurrentAnswer()" class="w-full py-3 px-4 rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] font-bold text-sm md:text-base shadow-sm hover:opacity-95 transition flex items-center justify-center gap-2">
+            <span>✅ 送出讀題推理</span>
+          </button>
+
+          <button id="nextQuestionBtn" onclick="nextQuestion()" class="hidden w-full py-3 px-4 rounded-xl bg-emerald-600 text-white font-bold text-sm md:text-base shadow-sm hover:bg-emerald-500 transition items-center justify-center gap-2">
+            <span>🚀 下一題挑戰</span>
+          </button>
+
+          <!-- Diagnostic Feedback Box -->
+          <div id="feedbackBox" class="hidden p-3.5 rounded-xl border text-xs md:text-sm leading-relaxed animate-pop">
+          </div>
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Level Up Celebration Modal -->
+    <div id="levelUpModal" class="hidden fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-2xl p-6 max-w-md w-full text-center shadow-xl animate-pop space-y-4">
+        <div id="modalBadgeIcon" class="w-20 h-20 mx-auto rounded-3xl bg-[var(--primary)] text-[var(--primary-foreground)] flex items-center justify-center text-4xl shadow-md">
+          🏆
+        </div>
+        <div>
+          <div class="text-xs font-bold uppercase tracking-wider text-amber-500 mb-1">🎉 恭喜晉升新階級！</div>
+          <h3 id="modalNewRankTitle" class="text-xl font-bold text-[var(--foreground)]">Lv.2 順序破解師</h3>
+          <p id="modalNewRankDesc" class="text-sm text-[var(--muted-foreground)] mt-2">
+            你已經能精準抓出「每 1 份」與「有幾份」了！接下來的題目會把數字順序顛倒，考驗你有沒有真正讀懂題意！
+          </p>
+        </div>
+        <div class="p-3 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-xs text-[var(--foreground)]" id="modalUnlockFeature">
+          🔓 解鎖新挑戰：文字順序顛倒陷阱
+        </div>
+        <button onclick="closeLevelUpModal()" class="w-full py-2.5 px-4 rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] font-bold text-sm hover:opacity-90 transition">
+          繼續出發挑戰！
+        </button>
+      </div>
+    </div>
+
+    <!-- Mythical Math Beast Incubator Modal -->
+    <div id="beastModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-[var(--card)] border border-[var(--border)] rounded-3xl p-6 max-w-lg w-full shadow-2xl animate-pop space-y-5 max-h-[92vh] overflow-y-auto">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-[var(--border)] pb-3">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🔮</span>
+            <h3 class="text-base md:text-lg font-bold text-[var(--foreground)]">乘法神獸孵化與超進化研究所</h3>
+          </div>
+          <button onclick="closeBeastModal()" class="w-8 h-8 rounded-full bg-[var(--secondary)] text-[var(--muted-foreground)] hover:text-[var(--foreground)] flex items-center justify-center font-bold text-sm">
+            ✕
+          </button>
+        </div>
+
+        <!-- Central Beast Stage Card -->
+        <div class="p-5 rounded-2xl bg-gradient-to-b from-amber-500/10 via-purple-500/5 to-transparent border border-amber-500/30 text-center space-y-3 relative overflow-hidden">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-xs font-bold text-amber-500">
+            <span id="beastModalStageBadge">第 1 階段：沉睡的星紋神獸蛋</span>
+          </div>
+
+          <!-- Animated Beast Visual Avatar -->
+          <div class="py-2">
+            <div id="beastModalAvatarBox" class="w-28 h-28 mx-auto rounded-3xl bg-gradient-to-tr from-amber-400/20 via-pink-500/20 to-purple-500/20 border-2 border-amber-400/50 flex items-center justify-center text-6xl shadow-lg glow-pulse animate-beast-float">
+              <span id="beastModalAvatar">🥚</span>
+            </div>
+          </div>
+
+          <!-- Progress Info -->
+          <div>
+            <div class="text-base font-extrabold text-[var(--foreground)] flex items-center justify-center gap-2">
+              <span id="beastModalStarsCount">0 / 40 ⭐</span>
+              <span id="beastModalPctText" class="text-sm font-semibold text-amber-500">(0%)</span>
+            </div>
+            <div class="text-xs text-[var(--muted-foreground)] mt-1">
+              破解題目並列對算式即可收集星星！20 星破殼現世 ➔ 40 星終極超進化為創世龍帝！
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="w-full h-3.5 bg-[var(--secondary)] rounded-full overflow-hidden border border-amber-500/30 p-0.5">
+            <div id="beastModalBarFill" class="h-full bg-gradient-to-r from-amber-400 via-pink-500 to-purple-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+          </div>
+
+          <!-- Beast Dialogue / Narrative Balloon -->
+          <div class="p-3 rounded-xl bg-[var(--secondary)]/80 border border-[var(--border)] text-xs text-[var(--foreground)] text-left leading-relaxed">
+            <div class="font-bold text-amber-500 mb-0.5">💬 神獸感應訊息：</div>
+            <div id="beastModalDialogue">蛋殼上有著古老的加減乘除符號紋路，正靜靜沉睡著...。每讀懂一道題目並列出正確算式，就會注入一顆星的乘法能量！</div>
+          </div>
+        </div>
+
+        <!-- 9 Stages Evolution Roadmap Showcase -->
+        <div class="space-y-2">
+          <div class="text-xs font-bold text-[var(--muted-foreground)] flex items-center justify-between">
+            <span>🧬 九大形態孵化與超進化之路：</span>
+            <span class="text-amber-500">20星誕生 ➔ 40星超進化龍帝</span>
+          </div>
+          <div id="beastStagesList" class="space-y-1.5 max-h-[260px] overflow-y-auto pr-1">
+            <!-- Dynamically populated 9 evolution stage items -->
+          </div>
+        </div>
+
+        <button onclick="closeBeastModal()" class="w-full py-2.5 rounded-xl bg-[var(--primary)] text-[var(--primary-foreground)] font-bold text-sm hover:opacity-95 transition">
+          繼續解題孵化與進化神獸！
+        </button>
+      </div>
+    </div>
+
+    <!-- Beast Grand Awakening / Evolution Celebration Modal (Triggered on 20 or 40 Stars) -->
+    <div id="beastAwakeningModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="bg-[var(--card)] border-2 border-amber-400 rounded-3xl p-6 md:p-8 max-w-lg w-full text-center shadow-2xl animate-pop space-y-5 relative overflow-hidden">
+        
+        <div id="awakeningBadgeText" class="inline-flex items-center gap-1 px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-400 text-xs md:text-sm font-extrabold text-amber-500">
+          ✨ 傳奇奇蹟降臨！神獸誕生現世 ✨
+        </div>
+
+        <div class="py-2">
+          <div id="awakeningAvatarBox" class="w-32 h-32 mx-auto rounded-3xl bg-gradient-to-tr from-amber-400/30 via-pink-500/30 to-purple-500/30 border-2 border-amber-400 flex items-center justify-center text-7xl shadow-xl glow-pulse animate-beast-float">
+            <span id="awakeningAvatar">🐉👑</span>
+          </div>
+        </div>
+
+        <div>
+          <h2 id="awakeningTitle" class="text-2xl md:text-3xl font-black text-amber-500 mb-1">
+            乘法幻曜星輝龍
+          </h2>
+          <div id="awakeningSubTitle" class="text-xs md:text-sm font-bold text-[var(--primary)]">
+            【完全體．神獸現世】
+          </div>
+          <p id="awakeningDesc" class="text-xs md:text-sm text-[var(--muted-foreground)] mt-3 leading-relaxed">
+            太不可思議了！你成功收集齊前 <strong>20 顆星星</strong>，神獸成功破殼誕生！<br/>
+            全新篇章<strong>【神獸超進化之章】</strong>現已全面解鎖，繼續收集滿 40 顆星星，<br/>
+            助星輝龍超進化為宇宙至尊<strong>「萬曜光輝創世龍帝」</strong>！
+          </p>
+        </div>
+
+        <div id="awakeningAchieveBadge" class="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-500 font-bold">
+          🌟 成就達成：第一篇章 20 題滿星完成！神獸成功破殼！
+        </div>
+
+        <button id="awakeningActionBtn" onclick="closeBeastAwakeningModal()" class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black text-base shadow-lg hover:brightness-110 transition">
+          太棒了！啟程進行超進化挑戰！
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. FIVE LEVELS FOCUSED 100% ON READING COMPREHENSION & EQUATION MODELING (ZERO CALCULATION)
+    // ==========================================
+    const LEVELS = [
+      {
+        level: 1,
+        icon: "🔍",
+        title: "Lv.1 見習讀題員",
+        shortName: "Lv.1 誰是每1份",
+        subtitle: "任務：從文字中找出「每 1 份是多少（被乘數）」與「有幾份/幾倍（乘數）」，列出算式！（含破殼篇 4 題與進化篇 4 題）",
+        unlockDesc: "讀懂基本應用題的「每份數量」與「份數/倍數」，完全不需自己算答案。",
+        questionsToPass: 8
+      },
+      {
+        level: 2,
+        icon: "🔄",
+        title: "Lv.2 順序破解師",
+        shortName: "Lv.2 順序顛倒陷阱",
+        subtitle: "任務：小心！這關題目故意把「幾份」寫在前面、「每1份的量」寫在後面，別盲目照順序抓數字！（含破殼篇與進化篇共 8 題）",
+        unlockDesc: "打破「看到第一個數字就放前面」的盲目習慣，真正看懂問題問的單位是什麼！",
+        questionsToPass: 8
+      },
+      {
+        level: 3,
+        icon: "🕵️",
+        title: "Lv.3 暗號與干擾獵人",
+        shortName: "Lv.3 暗號與多餘數字",
+        subtitle: "任務：破解題目裡的「文字暗號（一打=12、她和朋友）」並過濾「沒用的干擾數字」！（含破殼篇與進化篇共 8 題）",
+        unlockDesc: "不被題目中多餘的數字（如一般價、每包幾顆）欺騙，並找出藏在文字裡的數字！",
+        questionsToPass: 8
+      },
+      {
+        level: 4,
+        icon: "🧭",
+        title: "Lv.4 雙重結構分析師",
+        shortName: "Lv.4 兩步驟連乘拆解",
+        subtitle: "任務：看三排真實比例對齊圖解，拆解兩步驟連乘問題「先算什麼、再算什麼」（電腦自動算出中間得數）！（含破殼篇與進化篇共 8 題）",
+        unlockDesc: "支援兩種思考路線（如先算1箱幾個、或先算共有幾袋），訓練兩步驟文字邏輯！",
+        questionsToPass: 8
+      },
+      {
+        level: 5,
+        icon: "👑",
+        title: "Lv.5 傳奇讀題大師",
+        shortName: "Lv.5 估算與門檻判斷",
+        subtitle: "任務：列出算式後，對照題目條件判斷「錢夠不夠買」或「可獲得哪樣週年慶贈品」！（含破殼篇與進化篇共 8 題）",
+        unlockDesc: "最高等級：結合乘法估算列式、預算夠不夠、以及單元卷週年慶滿額贈品條件推理！",
+        questionsToPass: 8
+      }
+    ];
+
+    // ==========================================
+    // 2. QUESTION BANK (100% FOCUSED ON TEXT COMPREHENSION, ZERO MANUAL CALCULATION)
+    // ==========================================
+    const QUESTION_BANK = {
+      // ------------------------------------------
+      // LEVEL 1: Identify "Per 1 Unit" (Multiplicand) vs "How Many Units / Times" (Multiplier)
+      // ------------------------------------------
+      1: [
+        {
+          id: "L1_Q1",
+          scene: "🏮 夜市彈珠臺",
+          skill: "分辨「每1次」與「玩幾次」",
+          text: "玩一次彈珠臺遊戲要 20 元，品睿玩了 3 次，共花了多少元？",
+          highlightedText: "<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>玩一次彈珠臺遊戲要 20 元</span>，品睿<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>玩了 3 次</span>，共花了多少元？",
+          meaningHint: [
+            "🟢 <strong>每 1 份的量（被乘數）</strong>：「玩一次要 20 元」代表 1 次是 20 元。",
+            "🔵 <strong>有幾份（乘數）</strong>：「玩了 3 次」代表有 3 個 20 元連加。",
+            "🎯 <strong>問題在問</strong>：「共花了多少元」，所以要把「20 元」放在乘號前面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "玩 1 次",
+            unitText: "20元",
+            row2Label: "玩 3 次",
+            count: 3,
+            totalLabel: "共花了 ? 元（3 個 20 元合起來）"
+          },
+          step1: {
+            question: "讀一讀題目文字，題目最後問「共花了多少元」，請問哪一句話代表「每 1 份的價錢」？",
+            options: [
+              { text: "「玩一次要 20 元」是每 1 份的價錢；「玩了 3 次」是有 3 份", correct: true },
+              { text: "「玩了 3 次」是每 1 次 3 元；「20 元」是玩了 20 次", correct: false, reason: "看清楚數字後面的單位喔！20 後面是「元」（每次 20 元），3 後面是「次」（玩了 3 次）！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 20,
+          multiplier: 3,
+          answer: 60,
+          unit: "元",
+          numberBank: [20, 3, 23, 17],
+          reversedFeedback: "你排成了 3 × 20！雖然乘出來的數字一樣，但在應用題裡，3 是「3 次」，我們是把「20 元」加 3 次（20+20+20），所以「20」要放在前面當被乘數：20 × 3！"
+        },
+        {
+          id: "L1_Q2",
+          scene: "📚 書局繪本特賣（單元卷題型）",
+          skill: "分辨「每1本價錢」與「買幾本」",
+          text: "陽光書局本月舉行特賣會，一本故事繪本賣 89 元，王阿姨買了 8 本故事繪本，共要付幾元？",
+          highlightedText: "陽光書局本月舉行特賣會，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一本故事繪本賣 89 元</span>，王阿姨<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 8 本故事繪本</span>，共要付幾元？",
+          meaningHint: [
+            "🟢 <strong>每 1 份的量（被乘數）</strong>：「一本故事繪本賣 89 元」。",
+            "🔵 <strong>有幾份（乘數）</strong>：「買了 8 本」代表有 8 個 89 元。",
+            "🎯 <strong>問題在問</strong>：「共要付幾元」，所以把「89 元」放前面當被乘數！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "買 1 本繪本",
+            unitText: "89元",
+            row2Label: "買 8 本繪本",
+            count: 8,
+            totalLabel: "共要付 ? 元（8 個 89 元合起來）"
+          },
+          step1: {
+            question: "題目問「共要付幾元」，請問算式中放在前面的「被乘數」應該選哪一個數字？為什麼？",
+            options: [
+              { text: "選 89！因為 1 本賣 89 元，買 8 本就是把 89 元連加 8 次", correct: true },
+              { text: "選 8！因為買了 8 本，把 8 本連加 89 次", correct: false, reason: "想一想：如果把 8 連加 89 次，會變成「每本 8 元、買 89 本」，跟題目的意思就不一樣囉！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 89,
+          multiplier: 8,
+          answer: 712,
+          unit: "元",
+          numberBank: [89, 8, 97, 81],
+          reversedFeedback: "小心！8 是「8 本」，89 才是「每本 89 元」。求共要付幾元，要把 89 元放前面當被乘數，寫成 89 × 8 喔！"
+        },
+        {
+          id: "L1_Q3",
+          scene: "💌 誰是誰的幾倍",
+          skill: "理解「是…的幾倍」語意",
+          text: "品睿帶了 50 元，姐姐帶的錢是品睿的 6 倍，姐姐帶了多少元？",
+          highlightedText: "<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>品睿帶了 50 元</span>，姐姐帶的錢<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>是品睿的 6 倍</span>，姐姐帶了多少元？",
+          meaningHint: [
+            "🟢 <strong>基準 1 倍（被乘數）</strong>：「品睿帶了 50 元」是被拿來比較的基準。",
+            "🔵 <strong>幾倍（乘數）</strong>：「是品睿的 6 倍」代表姐姐有 6 個品睿的錢（6 個 50 元）。",
+            "🎯 <strong>列式思考</strong>：基準量 50 元放前面，6 倍放後面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "品睿 (基準1倍)",
+            unitText: "50元",
+            row2Label: "姐姐 (品睿的6倍)",
+            count: 6,
+            totalLabel: "姐姐帶了 ? 元（6 個 50 元合起來）"
+          },
+          step1: {
+            question: "題目說「姐姐帶的錢是品睿的 6 倍」，這句話是什麼意思？",
+            options: [
+              { text: "把品睿的 50 元當作 1 份，姐姐的錢有 6 份（也就是 6 個 50 元）", correct: true },
+              { text: "姐姐只帶了 6 元", correct: false, reason: "「6 倍」不是 6 元喔！看圖解第 2 排：姐姐有 6 格「50 元」！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 50,
+          multiplier: 6,
+          answer: 300,
+          unit: "元",
+          numberBank: [50, 6, 56, 44],
+          reversedFeedback: "姐姐帶的錢是「50 元的 6 倍」，所以基準量 50 元要放在被乘數，6 倍放在乘數，寫成 50 × 6 喔！"
+        },
+        {
+          id: "L1_Q4",
+          scene: "🚶 爺爺走公園（單元卷題型）",
+          skill: "理解「一圈長度」與「走幾圈」",
+          text: "公園外圍一圈有 306 公尺，爺爺每天走 6 圈，他每天走了幾公尺？",
+          highlightedText: "<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>公園外圍一圈有 306 公尺</span>，爺爺每天<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>走 6 圈</span>，他每天走了幾公尺？",
+          meaningHint: [
+            "🟢 <strong>每 1 圈的長（被乘數）</strong>：走 1 圈是 306 公尺。",
+            "🔵 <strong>走了幾圈（乘數）</strong>：每天走 6 圈，就是有 6 個 306 公尺連加。",
+            "🎯 <strong>問題在問</strong>：「走了幾公尺」，所以把 306 公尺放前面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "公園走 1 圈",
+            unitText: "306公尺",
+            row2Label: "每天走 6 圈",
+            count: 6,
+            customCellLabels: ["第1圈 306m", "第2圈 306m", "第3圈 306m", "第4圈 306m", "第5圈 306m", "第6圈 306m"],
+            totalLabel: "6 圈合起來共走了 ? 公尺（6 個 306 公尺）"
+          },
+          step1: {
+            question: "對照上方圖解，爺爺「走 6 圈」代表什麼意思？",
+            options: [
+              { text: "1 圈是 306 公尺，走 6 圈就是把「306 公尺」重複加 6 次", correct: true },
+              { text: "1 圈是 6 公尺，走了 306 圈", correct: false, reason: "看清楚單位喔！「306 公尺」是一圈的長度，「6 圈」是走的圈數！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 306,
+          multiplier: 6,
+          answer: 1836,
+          unit: "公尺",
+          numberBank: [306, 6, 312, 300],
+          reversedFeedback: "公園一圈 306 公尺（被乘數），走 6 圈（乘數），算式要列成 306 × 6 喔！"
+        },
+        {
+          id: "L1_Q5",
+          scene: "🍢 夜市古早味雞蛋糕（進化試煉）",
+          skill: "分辨「每1份有幾顆」與「買幾份」",
+          text: "夜市攤位賣古早味雞蛋糕，一份裡面有 6 顆，阿明買了 8 份雞蛋糕要分給親戚，一共買了多少顆雞蛋糕？",
+          highlightedText: "夜市攤位賣古早味雞蛋糕，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一份裡面有 6 顆</span>，阿明<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 8 份雞蛋糕</span>要分給親戚，一共買了多少顆雞蛋糕？",
+          meaningHint: [
+            "🟢 <strong>每 1 份的量（被乘數）</strong>：「一份裡面有 6 顆」代表 1 份是 6 顆。",
+            "🔵 <strong>有幾份（乘數）</strong>：「買了 8 份」代表有 8 個 6 顆連加。",
+            "🎯 <strong>問題在問</strong>：「一共買了多少顆」，所以要把「6 顆」放在乘號前面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "買 1 份雞蛋糕",
+            unitText: "6顆",
+            row2Label: "買 8 份雞蛋糕",
+            count: 8,
+            totalLabel: "一共買了 ? 顆（8 個 6 顆合起來）"
+          },
+          step1: {
+            question: "題目最後問「一共買了多少顆雞蛋糕」，請問算式中放在最前面的「被乘數」是多少？",
+            options: [
+              { text: "選 6！因為 1 份有 6 顆，買 8 份就是 8 個 6 顆連加", correct: true },
+              { text: "選 8！因為阿明買了 8 份", correct: false, reason: "注意單位喔！題目問「幾顆」，每 1 份有「6 顆」，所以 6 顆要放前面！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 6,
+          multiplier: 8,
+          answer: 48,
+          unit: "顆",
+          numberBank: [6, 8, 14, 48],
+          reversedFeedback: "小心！8 是「買了 8 份」，6 才是「每份 6 顆」。題目問共有幾顆，要把 6 顆放在被乘數，寫成 6 × 8 喔！"
+        },
+        {
+          id: "L1_Q6",
+          scene: "📖 國小班級圖書角（進化試煉）",
+          skill: "三位數乘以一位數：每本價錢放前面",
+          text: "學校圖書館採購繪本，一本科學冒險童書賣 125 元，三年級老師買了 4 本放在班級圖書角，一共花了多少元？",
+          highlightedText: "學校圖書館採購繪本，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一本科學冒險童書賣 125 元</span>，三年級老師<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 4 本</span>放在班級圖書角，一共花了多少元？",
+          meaningHint: [
+            "🟢 <strong>每 1 份的量（被乘數）</strong>：「一本科學冒險童書賣 125 元」。",
+            "🔵 <strong>有幾份（乘數）</strong>：「買了 4 本」代表有 4 個 125 元。",
+            "🎯 <strong>問題在問</strong>：「一共花了多少元」，把 125 元放前面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "買 1 本童書",
+            unitText: "125元",
+            row2Label: "買 4 本童書",
+            count: 4,
+            totalLabel: "一共花了 ? 元（4 個 125 元合起來）"
+          },
+          step1: {
+            question: "這道題目要算總花費，請問哪一個數字是「每 1 本的價錢（被乘數）」？",
+            options: [
+              { text: "125 元（因為 1 本 125 元，買 4 本就是 125 的 4 倍）", correct: true },
+              { text: "4 本（因為買了 4 本）", correct: false, reason: "4 是買的本數（乘數），125 才是每本的價錢（被乘數）喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 125,
+          multiplier: 4,
+          answer: 500,
+          unit: "元",
+          numberBank: [125, 4, 129, 500],
+          reversedFeedback: "小心！題目問共花多少元，應該把每本「125 元」放前面當被乘數，4 本放後面，列式為 125 × 4 喔！"
+        },
+        {
+          id: "L1_Q7",
+          scene: "🥛 牧場生乳分裝（進化試煉）",
+          skill: "容量情境：每瓶容量放前面",
+          text: "高山牧場生產優質牛奶，一小瓶鮮奶的容量是 250 毫升，小明和家人一共喝了 3 瓶，共喝了多少毫升的鮮奶？",
+          highlightedText: "高山牧場生產優質牛奶，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一小瓶鮮奶的容量是 250 毫升</span>，小明和家人一共<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>喝了 3 瓶</span>，共喝了多少毫升的鮮奶？",
+          meaningHint: [
+            "🟢 <strong>每 1 份的量（被乘數）</strong>：「一小瓶鮮奶是 250 毫升」。",
+            "🔵 <strong>有幾份（乘數）</strong>：「喝了 3 瓶」代表有 3 個 250 毫升。",
+            "🎯 <strong>問題在問</strong>：「共喝了多少毫升」，把「250 毫升」放前面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "喝 1 瓶鮮奶",
+            unitText: "250毫升",
+            row2Label: "喝 3 瓶鮮奶",
+            count: 3,
+            totalLabel: "共喝了 ? 毫升（3 個 250 毫升合起來）"
+          },
+          step1: {
+            question: "題目最後問「共喝了多少毫升」，請問乘號前面的被乘數應該填誰？",
+            options: [
+              { text: "填 250 毫升（因為每 1 瓶是 250 毫升，有 3 瓶）", correct: true },
+              { text: "填 3 瓶（因為喝了 3 瓶）", correct: false, reason: "看清楚單位！最後問「毫升」，所以每瓶「250 毫升」必須放前面喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 250,
+          multiplier: 3,
+          answer: 750,
+          unit: "毫升",
+          numberBank: [250, 3, 253, 750],
+          reversedFeedback: "顛倒囉！3 是瓶數，250 才是每瓶的毫升數。求共幾毫升，要把 250 放前面：250 × 3！"
+        },
+        {
+          id: "L1_Q8",
+          scene: "⏱️ 體育課跳繩挑戰（進化試煉）",
+          skill: "時間速度：每分鐘次數放前面",
+          text: "三年級體育課舉行耐力跳繩，小華平均每 1 分鐘能跳 108 下，小華持續跳了 5 分鐘，一共跳了多少下？",
+          highlightedText: "三年級體育課舉行耐力跳繩，小華平均<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每 1 分鐘能跳 108 下</span>，小華持續<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>跳了 5 分鐘</span>，一共跳了多少下？",
+          meaningHint: [
+            "🟢 <strong>每 1 份的量（被乘數）</strong>：「每 1 分鐘跳 108 下」。",
+            "🔵 <strong>有幾份（乘數）</strong>：「跳了 5 分鐘」代表有 5 個 108 下。",
+            "🎯 <strong>問題在問</strong>：「一共跳了多少下」，把「108 下」放前面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "跳 1 分鐘",
+            unitText: "108下",
+            row2Label: "跳 5 分鐘",
+            count: 5,
+            totalLabel: "一共跳了 ? 下（5 個 108 下合起來）"
+          },
+          step1: {
+            question: "讀一讀題目，問「一共跳了多少下」，誰是每 1 份的量（被乘數）？",
+            options: [
+              { text: "108 下（因為 1 分鐘跳 108 下，5 分鐘就是 108 的 5 倍）", correct: true },
+              { text: "5 分鐘（因為跳了 5 分鐘）", correct: false, reason: "5 是分鐘數（乘數），108 才是每分鐘跳的次數（被乘數）喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 108,
+          multiplier: 5,
+          answer: 540,
+          unit: "下",
+          numberBank: [108, 5, 113, 540],
+          reversedFeedback: "位置顛倒了！5 是分鐘，108 才是每分鐘跳幾下。求總共跳了幾下，要把 108 放前面：108 × 5！"
+        }
+      ],
+
+      // ------------------------------------------
+      // LEVEL 2: Reversed Word Order Traps
+      // ------------------------------------------
+      2: [
+        {
+          id: "L2_Q1",
+          scene: "🍢 烤肉攤順序陷阱",
+          skill: "破除「誰先出現就放前面」",
+          text: "老闆今天賣出了 4 串烤肉，每一串烤肉賣 36 元，老闆可以收到多少元？",
+          highlightedText: "老闆今天<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>賣出了 4 串烤肉</span>，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每一串烤肉賣 36 元</span>，老闆可以收到多少元？",
+          meaningHint: [
+            "⚠️ <strong>小心文字順序顛倒！</strong>題目故意先寫「賣出了 4 串」，後寫「每一串賣 36 元」。",
+            "🟢 <strong>真正的每 1 份（被乘數）</strong>：1 串賣 <strong>36 元</strong>。",
+            "🔵 <strong>有幾份（乘數）</strong>：賣出 <strong>4 串</strong>（4 個 36 元）。"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "每 1 串烤肉",
+            unitText: "36元",
+            row2Label: "賣出 4 串烤肉",
+            count: 4,
+            totalLabel: "共收到 ? 元（把 36 元連加 4 次）"
+          },
+          step1: {
+            question: "🕵️ 讀題避坑檢查：這題文字先出現「4 串」，後面才寫「36 元」，列算式時誰應該放在乘號前面（被乘數）？",
+            options: [
+              { text: "36 放前面！因為問題問「多少元」，每 1 串 36 元才是每份的量", correct: true },
+              { text: "4 放前面！因為題目第一個數字是 4，所以寫 4 × 36", correct: false, reason: "這就是最常見的陷阱！不能看誰先出現就放前面，4 是「4 串」，每串「36 元」連加 4 次才是總金額喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 36,
+          multiplier: 4,
+          answer: 144,
+          unit: "元",
+          numberBank: [4, 36, 40, 32],
+          reversedFeedback: "掉進「順序顛倒陷阱」囉！題目雖然把「4 串」寫在前面，但我們是算「36 元有 4 串（36+36+36+36）」，所以被乘數一定要放 36，寫成 36 × 4！"
+        },
+        {
+          id: "L2_Q2",
+          scene: "🍰 千層蛋糕順序陷阱（單元卷改編）",
+          skill: "破除「誰先出現就放前面」",
+          text: "阿姨到甜點店買了 7 條千層蛋糕，一條千層蛋糕賣 246 元，阿姨共要付幾元？",
+          highlightedText: "阿姨到甜點店<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 7 條千層蛋糕</span>，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一條千層蛋糕賣 246 元</span>，阿姨共要付幾元？",
+          meaningHint: [
+            "⚠️ <strong>別盲目抓第一個數字！</strong>第一個數字「7」是買了 7 條。",
+            "🟢 <strong>真正的每 1 份（被乘數）</strong>：後面寫的「一條千層蛋糕賣 <strong>246 元</strong>」。",
+            "🔵 <strong>有幾份（乘數）</strong>：買了 <strong>7 條</strong>。"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1 條千層蛋糕",
+            unitText: "246元",
+            row2Label: "買 7 條蛋糕",
+            count: 7,
+            totalLabel: "共要付 ? 元（7 個 246 元合起來）"
+          },
+          step1: {
+            question: "🕵️ 讀題避坑檢查：題目先寫「買了 7 條」，後寫「一條賣 246 元」，請問這題是把誰連加幾次？",
+            options: [
+              { text: "把「246 元」連加 7 次（246 的 7 倍），所以被乘數是 246", correct: true },
+              { text: "把「7 條」連加 246 次，所以被乘數是 7", correct: false, reason: "想一想：我們是買 7 條蛋糕，每條 246 元，所以是 7 個「246 元」合起來喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 246,
+          multiplier: 7,
+          answer: 1722,
+          unit: "元",
+          numberBank: [7, 246, 253, 239],
+          reversedFeedback: "別被文字出現的順序騙囉！「一條賣 246 元」才是每 1 份的價錢，買「7 條」是乘數，所以要列成 246 × 7！"
+        },
+        {
+          id: "L2_Q3",
+          scene: "🌾 插秧排數順序陷阱",
+          skill: "破除「誰先出現就放前面」",
+          text: "王叔叔在田裡插了 8 排秧苗，每一排都插 205 株，王叔叔共插了多少株秧苗？",
+          highlightedText: "王叔叔在田裡<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>插了 8 排秧苗</span>，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每一排都插 205 株</span>，王叔叔共插了多少株秧苗？",
+          meaningHint: [
+            "⚠️ <strong>看問題問什麼單位！</strong>問題最後問「共插了多少<strong>株</strong>秧苗」。",
+            "🟢 <strong>每 1 排有幾株（被乘數）</strong>：每一排有 <strong>205 株</strong>。",
+            "🔵 <strong>共有幾排（乘數）</strong>：插了 <strong>8 排</strong>。"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "每 1 排秧苗",
+            unitText: "205株",
+            row2Label: "共插 8 排秧苗",
+            count: 8,
+            totalLabel: "共插了 ? 株秧苗（8 個 205 株合起來）"
+          },
+          step1: {
+            question: "🕵️ 讀題避坑檢查：為什麼這題要把後面的「205 株」放在乘號前面當被乘數？",
+            options: [
+              { text: "因為每 1 排有 205 株，8 排就是有 8 個「205 株」", correct: true },
+              { text: "因為 205 比較大，大的數字一定要放前面", correct: false, reason: "不是因為數字大才放前面喔！是因為「每 1 排有 205 株」代表每 1 份的數量，所以才放前面！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 205,
+          multiplier: 8,
+          answer: 1640,
+          unit: "株",
+          numberBank: [8, 205, 213, 197],
+          reversedFeedback: "別被題目的文字順序騙囉！「每排 205 株」是每份的數量，共有「8 排」，所以要列成 205 × 8！"
+        },
+        {
+          id: "L2_Q4",
+          scene: "🍪 麥芽餅桶數順序陷阱",
+          skill: "理解倒裝敘述的倍數關係",
+          text: "桌上有 4 桶麥芽餅，每一桶麥芽餅都有 52 個，桌上共有多少個麥芽餅？",
+          highlightedText: "桌上有<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'> 4 桶麥芽餅</span>，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每一桶麥芽餅都有 52 個</span>，桌上共有多少個麥芽餅？",
+          meaningHint: [
+            "🟢 <strong>每 1 桶的數量（被乘數）</strong>：「每一桶都有 52 個」。",
+            "🔵 <strong>共有幾桶（乘數）</strong>：「桌上有 4 桶」。",
+            "🎯 <strong>列式思考</strong>：1 桶 52 個，4 桶是 52 個的 4 倍！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1 桶麥芽餅",
+            unitText: "52個",
+            row2Label: "4 桶麥芽餅",
+            count: 4,
+            totalLabel: "共有 ? 個麥芽餅（4 個 52 個合起來）"
+          },
+          step1: {
+            question: "🕵️ 讀題避坑檢查：題目先寫「4 桶」再寫「52 個」，請問正確的列式想法是什麼？",
+            options: [
+              { text: "1 桶有 52 個（被乘數），共有 4 桶（乘數），所以列成 52 × 4", correct: true },
+              { text: "先看到 4 再看到 52，所以列成 4 × 52", correct: false, reason: "小心！4 是「4 桶」，52 才是「每桶有 52 個」，要把 52 放前面喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 52,
+          multiplier: 4,
+          answer: 208,
+          unit: "個",
+          numberBank: [4, 52, 56, 48],
+          reversedFeedback: "4 是「4 桶」，52 才是「每桶 52 個」。求總共有幾個，要把每桶的 52 個放前面：52 × 4！"
+        },
+        {
+          id: "L2_Q5",
+          scene: "🐙 園遊會章魚小丸子（進化試煉）",
+          skill: "顛倒敘述：盒數在前面，每盒價錢在後面",
+          text: "園遊會美食街熱鬧滾滾，哥哥買了 5 盒章魚小丸子，每盒章魚小丸子賣 60 元，哥哥一共要付多少元？",
+          highlightedText: "園遊會美食街熱鬧滾滾，哥哥<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 5 盒章魚小丸子</span>，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每盒章魚小丸子賣 60 元</span>，哥哥一共要付多少元？",
+          meaningHint: [
+            "⚠️ <strong>顛倒陷阱：</strong>題目先把「5 盒」寫在前面，但問題在問「一共要付多少元」！",
+            "🟢 <strong>每 1 份的量（被乘數）：</strong>「每盒賣 60 元」。",
+            "🔵 <strong>有幾份（乘數）：</strong>「買了 5 盒」代表有 5 個 60 元。",
+            "🎯 <strong>正確列式：</strong>把每盒的「60 元」放前面，盒數「5」放後面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "買 1 盒章魚燒",
+            unitText: "60元",
+            row2Label: "買 5 盒章魚燒",
+            count: 5,
+            totalLabel: "一共要付 ? 元（5 個 60 元合起來）"
+          },
+          step1: {
+            question: "題目中「5 盒」寫在前面、「60 元」寫在後面。請問要算「共要付多少元」，應該怎麼列式？",
+            options: [
+              { text: "列 60 × 5！因為 1 盒 60 元，買 5 盒是 60 的 5 倍", correct: true },
+              { text: "列 5 × 60！因為文字中 5 寫在前面", correct: false, reason: "掉入文字順序陷阱囉！5 是盒數，60 才是每盒價錢，求共幾元要把 60 元放前面！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 60,
+          multiplier: 5,
+          answer: 300,
+          unit: "元",
+          numberBank: [5, 60, 65, 300],
+          reversedFeedback: "抓到顛倒陷阱了！雖然文字先把 5 寫在前面，但 5 是「5 盒」，每盒「60 元」才要放前面當被乘數，寫成 60 × 5！"
+        },
+        {
+          id: "L2_Q6",
+          scene: "🤸 學校健康操大會（進化試煉）",
+          skill: "顛倒敘述：隊數在前面，每隊人數在後面",
+          text: "操場上有 6 隊三年級小朋友正在排練健康操，每隊剛好有 24 個人，操場上一共有幾個人在做操？",
+          highlightedText: "操場上有<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'> 6 隊三年級小朋友</span>正在排練健康操，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每隊剛好有 24 個人</span>，操場上一共有幾個人在做操？",
+          meaningHint: [
+            "⚠️ <strong>顛倒陷阱：</strong>題目先寫「有 6 隊」，但問題在問「一共有幾個人」！",
+            "🟢 <strong>每 1 份的量（被乘數）：</strong>「每隊有 24 個人」。",
+            "🔵 <strong>有幾份（乘數）：</strong>「有 6 隊」代表有 6 個 24 人。",
+            "🎯 <strong>正確列式：</strong>把每隊的「24 人」放前面，隊數「6」放後面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1 隊人數",
+            unitText: "24人",
+            row2Label: "6 隊人數",
+            count: 6,
+            totalLabel: "操場上一共有 ? 人（6 個 24 人合起來）"
+          },
+          step1: {
+            question: "題目問「一共有幾個人」，請問算式的前面（被乘數）要放哪一個數字？",
+            options: [
+              { text: "放 24 人！因為 1 隊有 24 人，6 隊是 24 人連加 6 次", correct: true },
+              { text: "放 6 隊！因為題目第一個數字是 6", correct: false, reason: "不能只看到第一個數字就放前面！最後問的是「幾個人」，所以每隊的人數 24 必須放前面！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 24,
+          multiplier: 6,
+          answer: 144,
+          unit: "人",
+          numberBank: [6, 24, 30, 144],
+          reversedFeedback: "小心！6 是「6 隊」，24 才是「每隊 24 人」。問題問一共幾人，要把 24 放前面當被乘數：24 × 6！"
+        },
+        {
+          id: "L2_Q7",
+          scene: "🥧 甜點屋現烤蛋撻（進化試煉）",
+          skill: "顛倒敘述：盒數在前面，每盒顆數在後面",
+          text: "糕點師傅烤好新鮮蛋撻，爸爸買了 4 盒現烤蛋撻帶回家，每盒蛋撻裡面裝有 6 顆，爸爸一共買了多少顆蛋撻？",
+          highlightedText: "糕點師傅烤好新鮮蛋撻，爸爸<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 4 盒現烤蛋撻</span>帶回家，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每盒蛋撻裡面裝有 6 顆</span>，爸爸一共買了多少顆蛋撻？",
+          meaningHint: [
+            "⚠️ <strong>顛倒陷阱：</strong>題目先寫「4 盒」，但問題在問「一共買了多少顆」！",
+            "🟢 <strong>每 1 份的量（被乘數）：</strong>「每盒裝有 6 顆」。",
+            "🔵 <strong>有幾份（乘數）：</strong>「買了 4 盒」代表有 4 個 6 顆。",
+            "🎯 <strong>正確列式：</strong>把每盒的「6 顆」放前面，盒數「4」放後面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1 盒蛋撻",
+            unitText: "6顆",
+            row2Label: "4 盒蛋撻",
+            count: 4,
+            totalLabel: "一共買了 ? 顆（4 個 6 顆合起來）"
+          },
+          step1: {
+            question: "題目問「一共買了多少顆」，請問這兩個數字在算式裡的意思是什麼？",
+            options: [
+              { text: "6 顆是每盒顆數（被乘數），4 是買了 4 盒（乘數）", correct: true },
+              { text: "4 是每盒 4 顆，6 是買了 6 盒", correct: false, reason: "看清楚文字！題目說「4 盒」、「每盒 6 顆」，不要把數量和單位讀反囉！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 6,
+          multiplier: 4,
+          answer: 24,
+          unit: "顆",
+          numberBank: [4, 6, 10, 24],
+          reversedFeedback: "被文字順序騙到了！4 是「4 盒」，每盒裝「6 顆」。求共幾顆，要把 6 放在被乘數：6 × 4！"
+        },
+        {
+          id: "L2_Q8",
+          scene: "🐟 漁港新鮮白鯧魚（進化試煉）",
+          skill: "重量情境顛倒：條數在前面，每條重量在後面",
+          text: "阿姨去漁港海鮮市集買了 3 條新鮮白鯧魚，平均每條白鯧魚重 320 公克，這 3 條白鯧魚一共重多少公克？",
+          highlightedText: "阿姨去漁港海鮮市集<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 3 條新鮮白鯧魚</span>，平均<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每條白鯧魚重 320 公克</span>，這 3 條白鯧魚一共重多少公克？",
+          meaningHint: [
+            "⚠️ <strong>顛倒陷阱：</strong>先寫「3 條」，後面才寫「每條 320 公克」，問「共重多少公克」！",
+            "🟢 <strong>每 1 份的量（被乘數）：</strong>「每條重 320 公克」。",
+            "🔵 <strong>有幾份（乘數）：</strong>「買了 3 條」代表有 3 個 320 公克。",
+            "🎯 <strong>正確列式：</strong>把「320 公克」放前面，條數「3」放後面！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1 條白鯧魚",
+            unitText: "320g",
+            row2Label: "3 條白鯧魚",
+            count: 3,
+            totalLabel: "一共重 ? 公克（3 個 320 公克合起來）"
+          },
+          step1: {
+            question: "題目問「一共重多少公克」，算式中應該把哪一個數字當成被乘數？",
+            options: [
+              { text: "320 公克（因為 1 條 320 公克，3 條是 320 公克的 3 倍）", correct: true },
+              { text: "3 條（因為阿姨先買了 3 條魚）", correct: false, reason: "不能照文字出現順序抓數字！求公克數，必須把「每條 320 公克」放乘號前面！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 320,
+          multiplier: 3,
+          answer: 960,
+          unit: "公克",
+          numberBank: [3, 320, 323, 960],
+          reversedFeedback: "小心！3 是「3 條」，320 才是「每條 320 公克」。求一共幾公克，要把 320 放前面：320 × 3！"
+        }
+      ],
+
+      // ------------------------------------------
+      // LEVEL 3: Hidden Word Clues & Extra Distractor Numbers
+      // ------------------------------------------
+      3: [
+        {
+          id: "L3_Q1",
+          scene: "🏃 跳繩一星期（單元卷題型）",
+          skill: "破解文字暗號：「一個星期＝7天」",
+          text: "宇軒一天跳繩跳 230 下，連續跳了一個星期的跳繩，一共跳了幾下？",
+          highlightedText: "宇軒<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一天跳繩跳 230 下</span>，連續跳了<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>一個星期（＝7天）</span>的跳繩，一共跳了幾下？",
+          meaningHint: [
+            "🕵️ <strong>為什麼題目只有一個阿拉伯數字 230？</strong>因為另一個數字藏在國字「一個星期」裡面！",
+            "🟢 <strong>每 1 天的量（被乘數）</strong>：一天跳 <strong>230 下</strong>。",
+            "🔵 <strong>共有幾天（乘數）</strong>：「一個星期」有 <strong>7 天</strong>（週一到週日）！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "跳 1 天",
+            unitText: "230下",
+            row2Label: "跳 1 個星期 (7天)",
+            count: 7,
+            customCellLabels: ["週一 230", "週二 230", "週三 230", "週四 230", "週五 230", "週六 230", "週日 230"],
+            totalLabel: "「一個星期」就是連續 7 天（共 7 個 230 下）"
+          },
+          step1: {
+            question: "🕵️ 偵探破解文字暗號：題目裡沒寫出第二個阿拉伯數字，請問「連續跳了一個星期」代表乘數是多少？",
+            options: [
+              { text: "「一個星期」代表 7 天，所以是 230 下的 7 倍", correct: true },
+              { text: "「一個星期」是一，所以乘以 1", correct: false, reason: "看上方日曆圖解喔！230 下是「1 天」跳的，而「1 個星期」裡面有 7 天！" },
+              { text: "上學是 5 天，所以乘以 5", correct: false, reason: "在數學應用題中，「一個星期」固定是指完整的 7 天喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 230,
+          multiplier: 7,
+          answer: 1610,
+          unit: "下",
+          numberBank: [230, 7, 1, 5, 10],
+          reversedFeedback: "一天跳 230 下（被乘數），跳了 7 天（乘數），所以要記成 230 × 7 喔！"
+        },
+        {
+          id: "L3_Q2",
+          scene: "🍗 團購省錢素養題（單元卷題型）",
+          skill: "過濾題目中用不到的干擾數字",
+          text: "菜市場一般買一隻烤雞腿賣 150 元，如果用團購，一隻烤雞腿只要 125 元。奶奶用「團購」買了 6 隻烤雞腿，共要付多少元？",
+          highlightedText: "菜市場<span class='line-through opacity-50'>一般買一隻烤雞腿賣 150 元</span>，如果用團購，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一隻烤雞腿只要 125 元</span>。奶奶用「團購」<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 6 隻烤雞腿</span>，共要付多少元？",
+          meaningHint: [
+            "⚠️ <strong>別看到第一個數字 150 就抓來乘！</strong>",
+            "❌ <strong>無關的干擾資訊</strong>：「一般買一隻 150 元」（因為奶奶最後是用團購買的！）。",
+            "🟢 <strong>真正的每 1 隻價錢（被乘數）</strong>：團購一隻 <strong>125 元</strong>。",
+            "🔵 <strong>買了幾隻（乘數）</strong>：買了 <strong>6 隻</strong>。"
+          ],
+          diagramType: "filter_rows",
+          diagramData: {
+            distractorLabel: "一般價 (干擾)",
+            distractorText: "❌ 一般買 1 隻 150 元（奶奶是用團購，這個數字不能用！）",
+            row1Label: "團購 1 隻",
+            unitText: "125元",
+            row2Label: "團購買 6 隻",
+            count: 6,
+            totalLabel: "奶奶用團購共要付 ? 元（6 個 125 元）"
+          },
+          step1: {
+            question: "🕵️ 偵探過濾干擾數字：題目裡有「150、125、6」三個數字，哪一個數字完全不會出現在算式裡？為什麼？",
+            options: [
+              { text: "150 元用不到！因為奶奶是用「團購（一隻 125 元）」買的，不是用一般價買", correct: true },
+              { text: "125 元用不到，因為 150 元寫在最前面", correct: false, reason: "不能只抓第一個數字喔！讀最後一句：「奶奶用『團購』買了 6 隻」，所以要用團購價 125 元！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 125,
+          multiplier: 6,
+          answer: 750,
+          unit: "元",
+          numberBank: [150, 125, 6, 25],
+          reversedFeedback: "團購一隻烤雞腿是 125 元（被乘數），買了 6 隻（乘數），算式要寫成 125 × 6 喔！"
+        },
+        {
+          id: "L3_Q3",
+          scene: "🎵 連人帶己文字陷阱",
+          skill: "破解文字暗號：「她和 3 個好朋友」",
+          text: "一張音樂會門票賣 200 元，品蓁和她的 3 個好朋友一起去觀賞，買門票共要付多少元？",
+          highlightedText: "<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一張音樂會門票賣 200 元</span>，<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>品蓁和她的 3 個好朋友（＝共4人）</span>一起去觀賞，買門票共要付多少元？",
+          meaningHint: [
+            "⚠️ <strong>別看到題目寫 3 就直接乘以 3！</strong>",
+            "🟢 <strong>每 1 張門票（被乘數）</strong>：1 張門票賣 <strong>200 元</strong>。",
+            "🔵 <strong>共有幾個人去（乘數）</strong>：「品蓁（1人）」加上「她的 3 個好朋友」＝ <strong>總共 4 個人</strong>！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1 張門票 (1人)",
+            unitText: "200元",
+            row2Label: "品蓁＋3個朋友",
+            count: 4,
+            customCellLabels: ["👧品蓁 200元", "🧑朋友1 200元", "🧒朋友2 200元", "👦朋友3 200元"],
+            totalLabel: "品蓁(1人) ＋ 好朋友(3人) ＝ 共 4 個人要買門票！"
+          },
+          step1: {
+            question: "🕵️ 偵探讀題清點人數：「品蓁和她的 3 個好朋友一起去」，請問總共要買幾張門票？",
+            options: [
+              { text: "品蓁自己 1 張 ＋ 好朋友 3 張 ＝ 總共要買 4 張門票！", correct: true },
+              { text: "題目寫數字 3，所以只要買 3 張門票", correct: false, reason: "如果只買 3 張票，品蓁自己就進不去囉！「品蓁和 3 個朋友」合起來是 4 個人！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 200,
+          multiplier: 4,
+          answer: 800,
+          unit: "元",
+          numberBank: [200, 3, 4, 1],
+          reversedFeedback: "每張門票 200 元（被乘數），共有 4 個人（乘數），所以算式要寫 200 × 4 喔！"
+        },
+        {
+          id: "L3_Q4",
+          scene: "🎭 多餘編號與數量干擾",
+          skill: "看懂問題問的單位，過濾無關數字",
+          text: "一包草莓軟糖有 12 顆，每包賣 28 元，姐姐買了 5 包，共要付多少元？",
+          highlightedText: "一包草莓軟糖<span class='line-through opacity-50'>有 12 顆</span>，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每包賣 28 元</span>，姐姐<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 5 包</span>，共要付多少元？",
+          meaningHint: [
+            "⚠️ <strong>看清楚最後問題問什麼！</strong>問題問的是「共要付多少<strong>元</strong>」，不是問「有幾顆」！",
+            "❌ <strong>用不到的干擾資訊</strong>：「一包有 12 顆」（算錢的時候不用管裡面有幾顆！）。",
+            "🟢 <strong>每 1 包幾元（被乘數）</strong>：每包賣 <strong>28 元</strong>。",
+            "🔵 <strong>買了幾包（乘數）</strong>：買了 <strong>5 包</strong>。"
+          ],
+          diagramType: "filter_rows",
+          diagramData: {
+            distractorLabel: "每包顆數 (干擾)",
+            distractorText: "❌ 一包有 12 顆（題目最後問的是「共要付多少元」，不是問幾顆！）",
+            row1Label: "買 1 包的價錢",
+            unitText: "28元",
+            row2Label: "買 5 包的價錢",
+            count: 5,
+            totalLabel: "買 5 包共要付 ? 元（5 個 28 元）"
+          },
+          step1: {
+            question: "🕵️ 偵探過濾干擾數字：題目裡有「12 顆、28 元、5 包」，因為最後問「共要付多少元」，哪兩個數字才是有用的？",
+            options: [
+              { text: "只用「每包 28 元」和「買 5 包」！（12 顆是算顆數才用得到，算多少元用不到）", correct: true },
+              { text: "拿「12 顆」乘以「28 元」", correct: false, reason: "小心！題目是「1 包賣 28 元」（不是 1 顆 28 元），而且最後問幾元，所以 12 顆是干擾數字喔！" },
+              { text: "拿「12 顆」乘以「5 包」", correct: false, reason: "12 × 5 算出來是「共有 60 顆軟糖」，但題目最後問的是「共要付多少元」喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 28,
+          multiplier: 5,
+          answer: 140,
+          unit: "元",
+          numberBank: [12, 28, 5, 60],
+          reversedFeedback: "每包賣 28 元（被乘數），買了 5 包（乘數），算式要記成 28 × 5 喔！"
+        },
+        {
+          id: "L3_Q5",
+          scene: "🎢 主題樂園校外教學（進化試煉）",
+          skill: "文字暗號（她和朋友）＋ 價格干擾過濾",
+          text: "小英和她的 3 個好朋友一起去主題樂園，園區學生票特價每張 200 元（成人全票 350 元），她們買學生票一共花了多少元？",
+          highlightedText: "<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>小英和她的 3 個好朋友（＝共4人）</span>一起去主題樂園，園區<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>學生票特價每張 200 元</span>（<span class='line-through text-rose-500'>成人全票 350 元</span>），她們買學生票一共花了多少元？",
+          meaningHint: [
+            "🕵️ <strong>暗號破解：</strong>「小英和她的 3 個好朋友」＝ 1 ＋ 3 ＝ <strong>4 個人</strong>！",
+            "🚫 <strong>排除干擾：</strong>「成人全票 350 元」她們是學生用不到，是陷阱數字！",
+            "🟢 <strong>被乘數：</strong>學生票 1 張 200 元；🔵 <strong>乘數：</strong>共 4 人。",
+            "🎯 <strong>列式：</strong>200 × 4 ＝ 800 元。"
+          ],
+          diagramType: "filter_rows",
+          diagramData: {
+            distractorLabel: "干擾：全票 350元",
+            distractorText: "成人全票 350元（她們買學生票用不到）",
+            row1Label: "1 張學生票",
+            unitText: "200元",
+            row2Label: "共 4 人買票",
+            count: 4,
+            totalLabel: "一共花了 ? 元（4 個 200 元合起來）"
+          },
+          step1: {
+            question: "題目說「小英和她的 3 個好朋友一起去」，請問一共有幾個人要買票？「成人全票 350 元」有用嗎？",
+            options: [
+              { text: "共有 1＋3＝4 個人！成人全票 350 元是沒用的干擾數字！", correct: true },
+              { text: "只有 3 個人，而且要用 350 元計算", correct: false, reason: "注意文字暗號：「小英『和』3個朋友」，小英自己也要算進去，所以是 4 個人喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 200,
+          multiplier: 4,
+          answer: 800,
+          unit: "元",
+          numberBank: [200, 4, 3, 350, 800],
+          reversedFeedback: "小心暗號！小英和3個朋友共是 4 個人，學生票每張 200 元，列式為 200 × 4！全票 350 元是干擾數字喔！"
+        },
+        {
+          id: "L3_Q6",
+          scene: "🥤 量販超市大容量果汁（進化試煉）",
+          skill: "容量數值干擾 ＋ 原價特價過濾",
+          text: "量販超市大瓶柳橙汁每瓶容量有 1250 毫升，現在特價每瓶只要 48 元（原價 65 元），林叔叔買了 5 瓶特價柳橙汁，共要付多少元？",
+          highlightedText: "量販超市大瓶柳橙汁（<span class='line-through text-rose-500'>每瓶容量 1250 毫升</span>），現在<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>特價每瓶只要 48 元</span>（<span class='line-through text-rose-500'>原價 65 元</span>），林叔叔<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 5 瓶特價柳橙汁</span>，共要付多少元？",
+          meaningHint: [
+            "🚫 <strong>雙重干擾：</strong>題目問「共要付多少元」，瓶子容量「1250 毫升」與「原價 65 元」都用不到！",
+            "🟢 <strong>被乘數：</strong>現在特價每瓶 48 元。",
+            "🔵 <strong>乘數：</strong>買了 5 瓶。",
+            "🎯 <strong>列式：</strong>48 × 5 ＝ 240 元。"
+          ],
+          diagramType: "filter_rows",
+          diagramData: {
+            distractorLabel: "干擾：1250ml/原價65元",
+            distractorText: "容量 1250ml、原價 65元（問特價總金額，用不到）",
+            row1Label: "特價 1 瓶",
+            unitText: "48元",
+            row2Label: "買 5 瓶特價",
+            count: 5,
+            totalLabel: "共要付 ? 元（5 個 48 元合起來）"
+          },
+          step1: {
+            question: "題目問「共要付多少元」，題目裡哪兩個數字是完全用不到的干擾陷阱？",
+            options: [
+              { text: "容量「1250 毫升」和「原價 65 元」！算式只需要特價 48 元和買 5 瓶", correct: true },
+              { text: "48 元用不到，要用 1250 毫升算價錢", correct: false, reason: "毫升是飲料有多大瓶（容量單位），不能拿來當作買飲料花的錢喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 48,
+          multiplier: 5,
+          answer: 240,
+          unit: "元",
+          numberBank: [48, 5, 65, 1250, 240],
+          reversedFeedback: "小心！題目問共付多少元，特價每瓶 48 元才是被乘數，買 5 瓶是乘數，列式 48 × 5。別被容量 1250 毫升和原價 65 騙了！"
+        },
+        {
+          id: "L3_Q7",
+          scene: "✏️ 文具工廠鉛筆批發（進化試煉）",
+          skill: "文字暗號（一打＝12枝）＋ 長度公分干擾",
+          text: "文具工廠包裝鉛筆，1 打鉛筆有 12 枝，每枝鉛筆長度 18 公分。李老師買了 8 打鉛筆準備當作獎品，李老師一共買了多少枝鉛筆？",
+          highlightedText: "文具工廠包裝鉛筆，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>1 打鉛筆有 12 枝</span>（<span class='line-through text-rose-500'>每枝長度 18 公分</span>），李老師<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 8 打鉛筆</span>準備當作獎品，李老師一共買了多少枝鉛筆？",
+          meaningHint: [
+            "🕵️ <strong>暗號破解：</strong>1 打＝12 枝（每 1 打有 12 枝鉛筆）。",
+            "🚫 <strong>排除干擾：</strong>「每枝長度 18 公分」是長度，題目問「幾枝鉛筆」，18 公分是干擾！",
+            "🟢 <strong>被乘數：</strong>每打 12 枝；🔵 <strong>乘數：</strong>買了 8 打。",
+            "🎯 <strong>列式：</strong>12 × 8 ＝ 96 枝。"
+          ],
+          diagramType: "filter_rows",
+          diagramData: {
+            distractorLabel: "干擾：長度 18公分",
+            distractorText: "鉛筆長度 18公分（問鉛筆總枝數，長度用不到）",
+            row1Label: "1 打鉛筆",
+            unitText: "12枝",
+            row2Label: "買 8 打鉛筆",
+            count: 8,
+            totalLabel: "一共買了 ? 枝（8 個 12 枝合起來）"
+          },
+          step1: {
+            question: "題目問「一共買了多少枝鉛筆」，哪一句話藏著乘法的關鍵文字暗號？",
+            options: [
+              { text: "「1 打鉛筆有 12 枝」！買 8 打就是 12 枝連加 8 次，長度 18 公分是干擾", correct: true },
+              { text: "「長度 18 公分」是關鍵，1 打是多少不知道", correct: false, reason: "常識小暗號：生活中「1 打」就是 12 個喔！題目問幾枝，所以長度 18 公分用不到！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 12,
+          multiplier: 8,
+          answer: 96,
+          unit: "枝",
+          numberBank: [12, 8, 18, 96],
+          reversedFeedback: "別抓錯數字！題目問共買了幾枝鉛筆，每打 12 枝放前面，8 打放後面：12 × 8 ＝ 96 枝。長度 18 公分用不到喔！"
+        },
+        {
+          id: "L3_Q8",
+          scene: "🍪 手工烘焙坊餅乾（進化試煉）",
+          skill: "重量公克干擾 ＋ 錢包預算數字干擾",
+          text: "手工烘焙坊現烤燕麥餅乾，1 包餅乾重 150 公克、賣 85 元。小華帶了 500 元買了 4 包餅乾，買這 4 包燕麥餅乾一共花了多少元？",
+          highlightedText: "手工烘焙坊現烤燕麥餅乾（<span class='line-through text-rose-500'>1 包餅乾重 150 公克</span>），<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每包賣 85 元</span>。小華（<span class='line-through text-rose-500'>帶了 500 元</span>）<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 4 包餅乾</span>，買這 4 包燕麥餅乾一共花了多少元？",
+          meaningHint: [
+            "🚫 <strong>雙重干擾：</strong>題目問「一共花了多少元」，重量「150 公克」與錢包裡的「500 元」都用不到！",
+            "🟢 <strong>每 1 份的量（被乘數）：</strong>每包餅乾賣 85 元。",
+            "🔵 <strong>有幾份（乘數）：</strong>買了 4 包餅乾。",
+            "🎯 <strong>列式：</strong>85 × 4 ＝ 340 元。"
+          ],
+          diagramType: "filter_rows",
+          diagramData: {
+            distractorLabel: "干擾：150克/帶500元",
+            distractorText: "重量 150g、錢包 500元（問餅乾總花費，用不到）",
+            row1Label: "買 1 包餅乾",
+            unitText: "85元",
+            row2Label: "買 4 包餅乾",
+            count: 4,
+            totalLabel: "一共花了 ? 元（4 個 85 元合起來）"
+          },
+          step1: {
+            question: "題目問「買這 4 包餅乾一共花了多少元」，哪些數字是題目故意放的多餘數字？",
+            options: [
+              { text: "「重 150 公克」和「帶了 500 元」都是干擾！只需要算每包 85 元 × 買 4 包", correct: true },
+              { text: "500 元要拿來算，85 元是多餘的", correct: false, reason: "題目問的是「買 4 包餅乾花幾元」，不是問找回多少錢，所以不需要用到 500 元喔！" }
+            ]
+          },
+          mode: "single",
+          multiplicand: 85,
+          multiplier: 4,
+          answer: 340,
+          unit: "元",
+          numberBank: [85, 4, 150, 500, 340],
+          reversedFeedback: "小心干擾！求買 4 包餅乾花幾元，把每包「85 元」放前面，4 包放後面：85 × 4 ＝ 340 元！重量 150g 和帶 500 元用不到！"
+        }
+      ],
+
+      // ------------------------------------------
+      // LEVEL 4: Two-Step Multiplication Word Problems (100% True-to-Scale Proportional Grid!)
+      // ------------------------------------------
+      4: [
+        {
+          id: "L4_Q1",
+          scene: "🍊 裝箱水果順序陷阱（單元卷題型）",
+          skill: "4-3 順序顛倒的兩步驟文字拆解",
+          text: "一箱柳丁有 6 袋，每袋有 15 個柳丁，5 箱一共有多少個柳丁？",
+          highlightedText: "一箱柳丁<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>有 6 袋</span>，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每袋有 15 個柳丁</span>，<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'>5 箱</span>一共有多少個柳丁？",
+          meaningHint: [
+            "⚠️ <strong>單元卷最容易列反的兩步驟題！</strong>題目故意先寫「一箱有 6 袋」，再寫「每袋有 15 個」。",
+            "🟢 <strong>看圖第 1 排（最小 1 袋）</strong>：只有小小 1 格，裡面有 <strong>15 個柳丁</strong>。",
+            "🔵 <strong>看圖第 2 排（1 箱有 6 袋）</strong>：長度剛好是第 1 排的 <strong>6 倍</strong>（6 個 15），所以先算 1 箱有幾個時，要把 <strong>15 放前面（15 × 6）</strong>！",
+            "🟣 <strong>看圖第 3 排（5 箱）</strong>：長度是第 2 排的 <strong>5 倍</strong>（5 箱），再乘以 <strong>5</strong>！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1 袋柳丁",
+            unitText: "15個",
+            row1Desc: "1小格 ＝ 1袋（15個柳丁）",
+            row2Label: "1 箱柳丁 (6袋)",
+            mult1: 6,
+            row2Note: "1箱有 6 袋（長度是 1袋 的 6倍）",
+            row3Label: "5 箱柳丁",
+            mult2: 5,
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "箱(6袋)",
+            totalNote: "5 箱 ＝ 5 個「1箱的數量」（先算 1箱 15×6＝90 個，再算 5箱 90×5＝450 個）"
+          },
+          mode: "twostep",
+          paths: [
+            {
+              id: "A",
+              label: "先算第 2 排「1 箱有幾個柳丁（15×6）」，再算第 3 排「5 箱共有幾個（90×5）」",
+              step1Desc: "先算第 2 排：1 箱（6袋）有幾個柳丁（每袋15個放前面，乘數是6）",
+              eq1: [15, 6],
+              midVal: 90,
+              midUnit: "個",
+              step2Desc: "再算第 3 排：5 箱一共有幾個柳丁（1箱90個放前面，乘數是5）",
+              eq2: [90, 5]
+            }
+          ],
+          answer: 450,
+          unit: "個",
+          numberBank: [15, 6, 5, 90, 75]
+        },
+        {
+          id: "L4_Q2",
+          scene: "🐷 存錢幾個星期（單元卷題型）",
+          skill: "4-3 隱藏「1星期=7天」的兩步驟拆解",
+          text: "小宇每天存 25 元，存了 3 個星期，小宇共可以存幾元？",
+          highlightedText: "小宇<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每天存 25 元</span>，存了<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'> 3 個星期（每星期7天）</span>，小宇共可以存幾元？",
+          meaningHint: [
+            "🕵️ <strong>為什麼這題是兩步驟？</strong>因為題目給的是「每天 25 元」，卻問「3 個星期」！",
+            "🟢 <strong>看圖第 1 排（1 天）</strong>：小小 1 格代表 1 天存 <strong>25 元</strong>。",
+            "🔵 <strong>看圖第 2 排（1 個星期＝7天）</strong>：長度是第 1 排的 <strong>7 倍</strong>（7 小格），先算 1 個星期存幾元（25 × 7＝175，乘數是 7 一位數）！",
+            "🟣 <strong>看圖第 3 排（3 個星期）</strong>：長度是第 2 排的 <strong>3 倍</strong>，再算 3 個星期共存幾元（175 × 3＝525，乘數是 3 一位數）！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "存 1 天",
+            unitText: "25元",
+            row1Desc: "1小格 ＝ 存 1 天（25元）",
+            row2Label: "存 1 星期 (7天)",
+            mult1: 7,
+            row2Note: "1星期有 7 天（長度是 1天 的 7倍）",
+            row3Label: "存 3 個星期",
+            mult2: 3,
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "星期(7天)",
+            totalNote: "3 個星期 ＝ 3 個「1星期的存款」（先算 1星期 25×7＝175 元，再算 3星期 175×3＝525 元）"
+          },
+          mode: "twostep",
+          paths: [
+            {
+              id: "A",
+              label: "先算第 2 排「1 個星期（7天）存幾元（25×7）」，再算第 3 排「3 個星期共存幾元（175×3）」",
+              step1Desc: "先算第 2 排：1 個星期（7天）可以存幾元（每天25元放前面，乘數是7）",
+              eq1: [25, 7],
+              midVal: 175,
+              midUnit: "元",
+              step2Desc: "再算第 3 排：3 個星期共可以存幾元（1星期175元放前面，乘數是3）",
+              eq2: [175, 3]
+            }
+          ],
+          answer: 525,
+          unit: "元",
+          numberBank: [25, 7, 3, 175, 75]
+        },
+        {
+          id: "L4_Q3",
+          scene: "🧣 百貨連續倍數問題",
+          skill: "4-3 連續倍數的兩步驟文字拆解",
+          text: "一個髮夾 35 元，一個錢包的價錢是髮夾的 2 倍，一條圍巾的價錢是錢包的 3 倍，一條圍巾是多少元？",
+          highlightedText: "<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一個髮夾 35 元</span>，一個錢包的價錢<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>是髮夾的 2 倍</span>，一條圍巾的價錢<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'>是錢包的 3 倍</span>，一條圍巾是多少元？",
+          meaningHint: [
+            "🟢 <strong>看圖第 1 排（髮夾）</strong>：1 小格代表 1 個髮夾 <strong>35 元</strong>。",
+            "🔵 <strong>看圖第 2 排（錢包）</strong>：錢包是髮夾的 <strong>2 倍</strong>（2 小格長）。",
+            "🟣 <strong>看圖第 3 排（圍巾）</strong>：圍巾是錢包的 <strong>3 倍</strong>（3 個錢包長，共 2×3＝6 小格長）！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1個髮夾 (基準)",
+            unitText: "35元",
+            row1Desc: "1小格 ＝ 1個髮夾（35元）",
+            row2Label: "1個錢包 (髮夾2倍)",
+            mult1: 2,
+            row2Note: "1個錢包 ＝ 2小格（髮夾的 2倍）",
+            row3Label: "1條圍巾 (錢包3倍)",
+            mult2: 3,
+            row3GroupPrefix: "錢包",
+            totalNote: "1條圍巾 ＝ 3個錢包的長（共 2×3＝6 小格）"
+          },
+          mode: "twostep",
+          paths: [
+            {
+              id: "A",
+              label: "先算第 2 排「一個錢包多少元（35×2）」，再算第 3 排「一條圍巾多少元（70×3）」",
+              step1Desc: "先算第 2 排：一個錢包的價錢（髮夾35元放前面，乘數是2）",
+              eq1: [35, 2],
+              midVal: 70,
+              midUnit: "元",
+              step2Desc: "再算第 3 排：一條圍巾的價錢（錢包70元放前面，乘數是3）",
+              eq2: [70, 3]
+            }
+          ],
+          answer: 210,
+          unit: "元",
+          numberBank: [35, 2, 3, 70, 105]
+        },
+        {
+          id: "L4_Q4",
+          scene: "🧁 泡芙禮盒順序陷阱（課本練習題型）",
+          skill: "4-3 兩步驟文字理解（誰是價錢、誰是個數）",
+          text: "一盒泡芙有 2 個，每個泡芙賣 45 元，媽媽買了 3 盒，共要付多少元？",
+          highlightedText: "一盒泡芙<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>有 2 個</span>，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每個泡芙賣 45 元</span>，媽媽<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'>買了 3 盒</span>，共要付多少元？",
+          meaningHint: [
+            "⚠️ <strong>注意題目第一句先寫「一盒有 2 個」，第二句才寫「每個賣 45 元」！</strong>",
+            "🟢 <strong>看圖第 1 排（最小 1 個泡芙）</strong>：1 小格代表 1 個泡芙賣 <strong>45 元</strong>。",
+            "🔵 <strong>看圖第 2 排（1 盒有 2 個）</strong>：長度是 2 小格，先算 1 盒多少元時，要把「45 元」乘以 2 個（<strong>45 × 2＝90</strong>，乘數是 2 一位數）！",
+            "🟣 <strong>看圖第 3 排（買 3 盒）</strong>：共有 3 盒，再把 1 盒的 90 元乘以 3（<strong>90 × 3＝270</strong>，乘數是 3 一位數）！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1 個泡芙",
+            unitText: "45元",
+            row1Desc: "1小格 ＝ 1個泡芙（45元）",
+            row2Label: "1 盒泡芙 (2個)",
+            mult1: 2,
+            row2Note: "1盒有 2 個（2小格長）",
+            row3Label: "3 盒泡芙",
+            mult2: 3,
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "盒(2個)",
+            totalNote: "3 盒 ＝ 3 個「1盒的價錢」（先算 1盒 45×2＝90 元，再算 3盒 90×3＝270 元）"
+          },
+          mode: "twostep",
+          paths: [
+            {
+              id: "A",
+              label: "先算第 2 排「1 盒泡芙賣多少元（45×2）」，再算第 3 排「3 盒共要付多少元（90×3）」",
+              step1Desc: "先算第 2 排：1 盒（2個）泡芙賣多少元（每個45元放前面，乘數是2）",
+              eq1: [45, 2],
+              midVal: 90,
+              midUnit: "元",
+              step2Desc: "再算第 3 排：買 3 盒共要付多少元（1盒90元放前面，乘數是3）",
+              eq2: [90, 3]
+            }
+          ],
+          answer: 270,
+          unit: "元",
+          numberBank: [45, 2, 3, 90, 135]
+        },
+        {
+          id: "L4_Q5",
+          scene: "🥐 歐式麵包坊可頌（進化試煉）",
+          skill: "兩步驟連乘：袋裝、盒裝雙重包裝",
+          text: "歐式麵包坊出爐迷你可頌，1 袋可頌裝 4 個，1 盒裝有 3 袋，烘焙師傅今天烤好並包裝了 6 盒，一共有多少個迷你可頌？",
+          highlightedText: "歐式麵包坊出爐迷你可頌，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>1 袋可頌裝 4 個</span>，1 盒<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>裝有 3 袋</span>，烘焙師傅今天烤好並包裝了<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'> 6 盒</span>，一共有多少個迷你可頌？",
+          meaningHint: [
+            "📍 <strong>讀懂兩重包裝結構：</strong>最小單位是「1袋裝4個」；第2層是「1盒裝3袋」；第3層是「共有6盒」！",
+            "<strong>標準解法（乘數皆為一位數）：</strong>先算 1 盒有幾個（4 × 3 ＝ 12 個，乘數是 3 一位數），再算 6 盒共有幾個（12 × 6 ＝ 72 個，乘數是 6 一位數）！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1袋可頌",
+            unitText: "4個",
+            row1Desc: "最小 1 袋 ＝ 4 個",
+            mult1: 3,
+            row2Label: "1盒可頌 (3袋)",
+            row2Note: "1 盒有 3 袋（共 4×3＝12 個）",
+            mult2: 6,
+            row3Label: "6盒可頌",
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "盒",
+            totalNote: "6 盒 ＝ 6 個「1盒的長度」（先算 1盒 4×3＝12 個，再算 6盒 12×6＝72 個）"
+          },
+          mode: "twostep",
+          paths: [
+            {
+              id: "A",
+              label: "先算第 2 排「1 盒有幾個可頌（4×3）」，再算第 3 排「6 盒共有幾個（12×6）」",
+              step1Desc: "先算 1 盒有幾個可頌（1袋4個放前面，乘數是3）",
+              eq1: [4, 3],
+              midVal: 12,
+              midUnit: "個",
+              step2Desc: "再算 6 盒一共有多少個可頌（1盒12個放前面，乘數是6）",
+              eq2: [12, 6]
+            }
+          ],
+          answer: 72,
+          unit: "個",
+          numberBank: [4, 3, 6, 12, 72]
+        },
+        {
+          id: "L4_Q6",
+          scene: "🥤 籃球隊運動飲料（進化試煉）",
+          skill: "兩步驟連乘：瓶裝、箱裝價錢連乘",
+          text: "體育用品社促銷運動飲料，1 瓶運動飲料賣 20 元，1 箱裡面裝有 6 瓶，三年級籃球隊一共訂購了 5 箱，一共要付多少元？",
+          highlightedText: "體育用品社促銷運動飲料，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>1 瓶運動飲料賣 20 元</span>，1 箱裡面<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>裝有 6 瓶</span>，三年級籃球隊一共訂購了<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'> 5 箱</span>，一共要付多少元？",
+          meaningHint: [
+            "📍 <strong>讀懂雙重結構：</strong>1 瓶 20 元，1 箱有 6 瓶，共買 5 箱！",
+            "<strong>標準解法（乘數皆為一位數）：</strong>先算 1 箱幾元（20 × 6 ＝ 120 元，乘數是 6 一位數），再算 5 箱共幾元（120 × 5 ＝ 600 元，乘數是 5 一位數）！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1瓶飲料",
+            unitText: "20元",
+            row1Desc: "最小 1 瓶 ＝ 20 元",
+            mult1: 6,
+            row2Label: "1箱飲料 (6瓶)",
+            row2Note: "1 箱有 6 瓶（共 20×6＝120 元）",
+            mult2: 5,
+            row3Label: "5箱飲料",
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "箱",
+            totalNote: "5 箱 ＝ 5 個「1箱的長度」（先算 1箱 20×6＝120 元，再算 5箱 120×5＝600 元）"
+          },
+          mode: "twostep",
+          paths: [
+            {
+              id: "A",
+              label: "先算第 2 排「1 箱運動飲料幾元（20×6）」，再算第 3 排「買 5 箱共要付幾元（120×5）」",
+              step1Desc: "先算 1 箱運動飲料要多少元（1瓶20元放前面，乘數是6）",
+              eq1: [20, 6],
+              midVal: 120,
+              midUnit: "元",
+              step2Desc: "再算買 5 箱一共要付多少元（1箱120元放前面，乘數是5）",
+              eq2: [120, 5]
+            }
+          ],
+          answer: 600,
+          unit: "元",
+          numberBank: [20, 6, 5, 120, 600]
+        },
+        {
+          id: "L4_Q7",
+          scene: "🖊️ 辦公室原子筆大採購（進化試煉）",
+          skill: "兩步驟連乘：包裝、大盒雙重數量",
+          text: "教務處採購藍色原子筆，1 包原子筆裝有 5 枝，1 大盒裡面裝有 6 包，學校一共採購了 4 大盒，一共有多少枝原子筆？",
+          highlightedText: "教務處採購藍色原子筆，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>1 包原子筆裝有 5 枝</span>，1 大盒裡面<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>裝有 6 包</span>，學校一共採購了<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'> 4 大盒</span>，一共有多少枝原子筆？",
+          meaningHint: [
+            "📍 <strong>讀懂包裝結構：</strong>1 包裝 5 枝，1 大盒裝 6 包，買 4 大盒！",
+            "<strong>標準解法（乘數皆為一位數）：</strong>先算 1 大盒有幾枝（5 × 6 ＝ 30 枝，乘數是 6 一位數），再算 4 大盒共有幾枝（30 × 4 ＝ 120 枝，乘數是 4 一位數）！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1包筆",
+            unitText: "5枝",
+            row1Desc: "最小 1 包 ＝ 5 枝",
+            mult1: 6,
+            row2Label: "1大盒筆 (6包)",
+            row2Note: "1 大盒有 6 包（共 5×6＝30 枝）",
+            mult2: 4,
+            row3Label: "4大盒筆",
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "大盒",
+            totalNote: "4 大盒 ＝ 4 個「1大盒的長度」（先算 1大盒 5×6＝30 枝，再算 4大盒 30×4＝120 枝）"
+          },
+          mode: "twostep",
+          paths: [
+            {
+              id: "A",
+              label: "先算第 2 排「1 大盒有幾枝筆（5×6）」，再算第 3 排「4 大盒共有幾枝（30×4）」",
+              step1Desc: "先算 1 大盒有幾枝筆（1包5枝放前面，乘數是6）",
+              eq1: [5, 6],
+              midVal: 30,
+              midUnit: "枝",
+              step2Desc: "再算 4 大盒一共有多少枝筆（1盒30枝放前面，乘數是4）",
+              eq2: [30, 4]
+            }
+          ],
+          answer: 120,
+          unit: "枝",
+          numberBank: [5, 6, 4, 30, 120]
+        },
+        {
+          id: "L4_Q8",
+          scene: "🧼 植萃手工皂禮盒（進化試煉）",
+          skill: "兩步驟連乘：單塊、禮盒價錢連乘",
+          text: "文創市集展售天然草本手工皂，1 塊手工皂賣 85 元，1 禮盒裡面裝有 2 塊手工皂，阿姨買了 4 禮盒送給親朋好友，一共花了多少元？",
+          highlightedText: "文創市集展售天然草本手工皂，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>1 塊手工皂賣 85 元</span>，1 禮盒裡面<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>裝有 2 塊手工皂</span>，阿姨買了<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'> 4 禮盒</span>送給親朋好友，一共花了多少元？",
+          meaningHint: [
+            "📍 <strong>讀懂雙重結構：</strong>1 塊 85 元，1 禮盒有 2 塊，買 4 禮盒！",
+            "<strong>標準解法（乘數皆為一位數）：</strong>先算 1 禮盒多少元（85 × 2 ＝ 170 元，乘數是 2 一位數），再算 4 禮盒共花多少元（170 × 4 ＝ 680 元，乘數是 4 一位數）！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1塊手工皂",
+            unitText: "85元",
+            row1Desc: "最小 1 塊 ＝ 85 元",
+            mult1: 2,
+            row2Label: "1禮盒 (2塊)",
+            row2Note: "1 禮盒有 2 塊（共 85×2＝170 元）",
+            mult2: 4,
+            row3Label: "4禮盒手工皂",
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "禮盒",
+            totalNote: "4 禮盒 ＝ 4 個「1禮盒的長度」（先算 1禮盒 85×2＝170 元，再算 4禮盒 170×4＝680 元）"
+          },
+          mode: "twostep",
+          paths: [
+            {
+              id: "A",
+              label: "先算第 2 排「1 禮盒手工皂多少元（85×2）」，再算第 3 排「買 4 禮盒共花多少元（170×4）」",
+              step1Desc: "先算 1 禮盒手工皂要多少元（1塊85元放前面，乘數是2）",
+              eq1: [85, 2],
+              midVal: 170,
+              midUnit: "元",
+              step2Desc: "再算 4 禮盒一共要花多少元（1盒170元放前面，乘數是4）",
+              eq2: [170, 4]
+            }
+          ],
+          answer: 680,
+          unit: "元",
+          numberBank: [85, 2, 4, 170, 680]
+        }
+      ],
+
+      // ------------------------------------------
+      // LEVEL 5: Real-World Meaning & Threshold Decisions
+      // ------------------------------------------
+      5: [
+        {
+          id: "L5_Q1",
+          scene: "🏸 週年慶滿額贈品（單元卷題型）",
+          skill: "理解滿額贈品條件與列式比較",
+          promoBanner: "🎁 <strong>運動用品店週年慶公告：</strong><br/>• 消費滿 <strong>500 元</strong>，送一雙運動襪<br/>• 消費滿 <strong>1000 元</strong>，送一頂運動帽<br/>• 消費滿 <strong>1500 元</strong>，送一件紀念 T 恤",
+          text: "一枝羽球拍賣 746 元，謝先生買了 2 枝羽球拍，可以獲得贈品「一件紀念 T 恤（需滿 1500 元）」嗎？",
+          highlightedText: "<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一枝羽球拍賣 746 元</span>，謝先生<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買了 2 枝羽球拍</span>，可以獲得贈品「一件紀念 T 恤（需滿 1500 元）」嗎？",
+          meaningHint: [
+            "⚠️ <strong>別把公告裡的 1500 元拿去乘！</strong>1500 元是用來比較的「門檻線」！",
+            "🟢 <strong>第 1 排（1 枝羽球拍）</strong>：1 枝賣 <strong>746 元</strong>。",
+            "🔵 <strong>第 2 排（謝先生買 2 枝花的錢）</strong>：先列出 <strong>746 × 2</strong>（電腦會幫你算出是 1492 元）。",
+            "🟡 <strong>第 3 排（送 T 恤門檻線）</strong>：比比看 1492 元有沒有達到 1500 元？"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1 枝羽球拍",
+            unitText: "746元",
+            row2Label: "買 2 枝總金額",
+            count: 2,
+            totalLabel: "買 2 枝合起來共 1492 元",
+            row3ThresholdLabel: "送 T 恤門檻",
+            row3ThresholdText: "🎁 消費必須滿 1500 元才能送紀念 T 恤",
+            row3Ratio: 100
+          },
+          step1: {
+            question: "對照上方圖解，題目問謝先生能不能拿到「紀念 T 恤（滿 1500 元）」，我們應該列出什麼算式來算謝先生花了幾元？",
+            options: [
+              { text: "算「2 枝 746 元羽球拍共幾元」，1500 元只是最後拿來比大小的門檻，不放進乘法裡！", correct: true },
+              { text: "拿 1500 元去乘以 2", correct: false, reason: "看圖解喔！1500 元是第 3 排的「贈品門檻線」，謝先生真正掏錢買的是第 2 排的「2 枝 746 元羽球拍」！" }
+            ]
+          },
+          mode: "estimation",
+          multiplicand: 746,
+          multiplier: 2,
+          estAnswer: 1492,
+          decisionQuestion: "電腦幫你算出 746 × 2 ＝ 1492 元了！對照週年慶公告（滿 1500 元送紀念 T 恤），謝先生可以獲得紀念 T 恤嗎？",
+          decisionOptions: [
+            { text: "不可以！因為 1492 元 ＜ 1500 元（還差 8 元才滿 1500 元）", correct: true },
+            { text: "可以！因為 1492 元已經很接近 1500 元了", correct: false, reason: "看圖解第 2 排與第 3 排：1492 元比 1500 元少 8 元，還沒滿 1500 元就不能送 T 恤喔！" }
+          ],
+          numberBank: [746, 2, 1500, 1000, 500],
+          reversedFeedback: "一枝羽球拍 746 元（被乘數），買 2 枝（乘數），算式要記成 746 × 2 喔！"
+        },
+        {
+          id: "L5_Q2",
+          scene: "🍪 買餅乾錢夠不夠（單元卷題型）",
+          skill: "理解「帶的錢」與「要付的錢」",
+          text: "一包海苔餅乾賣 23 元，小華有 100 元，如果想買 4 包海苔餅乾，小華的錢夠不夠？",
+          highlightedText: "<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一包海苔餅乾賣 23 元</span>，小華有 100 元，如果想<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買 4 包海苔餅乾</span>，小華的錢夠不夠？",
+          meaningHint: [
+            "⚠️ <strong>別看到中間有 100 元就把 100 拿去乘！</strong>",
+            "🟢 <strong>第 1 排（1 包餅乾）</strong>：1 包賣 <strong>23 元</strong>。",
+            "🔵 <strong>第 2 排（買 4 包餅乾要付的錢）</strong>：列出 <strong>23 × 4</strong>（電腦幫你算出是 92 元）。",
+            "🟡 <strong>第 3 排（小華口袋裡的 100 元）</strong>：100 元是拿來付錢的，不放進乘法算式裡！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1 包餅乾",
+            unitText: "23元",
+            row2Label: "買 4 包要付的錢",
+            count: 4,
+            totalLabel: "買 4 包共要付 92 元",
+            row3ThresholdLabel: "小華帶的錢",
+            row3ThresholdText: "💵 小華錢包裡有 100 元（比 4 包餅乾的 92 元還要多！）",
+            row3Ratio: 100
+          },
+          step1: {
+            question: "題目裡有「23 元、100 元、4 包」三個數字，請問「100 元」代表什麼意思？",
+            options: [
+              { text: "100 元是小華帶的錢（用來跟 4 包餅乾的總價比大小），不能放進乘法算式裡乘！", correct: true },
+              { text: "1 包餅乾賣 100 元，所以要算 100 × 4", correct: false, reason: "看清楚文字喔！1 包餅乾是賣「23 元」，「100 元」是小華身上的錢！" }
+            ]
+          },
+          mode: "estimation",
+          multiplicand: 23,
+          multiplier: 4,
+          estAnswer: 92,
+          decisionQuestion: "電腦幫你算出買 4 包餅乾要 23 × 4 ＝ 92 元，而小華有 100 元，請問小華的錢夠不夠？",
+          decisionOptions: [
+            { text: "夠！因為買 4 包只要 92 元，小華帶的 100 元比 92 元多", correct: true },
+            { text: "不夠！因為 92 元比 100 元大", correct: false, reason: "92 元比 100 元少喔！4 包只要 92 元，帶 100 元一定夠買！" }
+          ],
+          numberBank: [23, 4, 100, 20],
+          reversedFeedback: "每包餅乾 23 元（被乘數），買 4 包（乘數），算式要列成 23 × 4 喔！"
+        },
+        {
+          id: "L5_Q3",
+          scene: "🍫 超商購物估算",
+          skill: "4-4 理解「估算成整十」的列式",
+          text: "一盒巧克力賣 32 元，姐姐給宥廷 150 元，請他幫忙買 6 盒巧克力。把 32 元估算成最接近的整十元並列出算式，姐姐給的錢夠嗎？",
+          highlightedText: "<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一盒巧克力賣 32 元（大約 30 元）</span>，姐姐給宥廷 150 元，請他幫忙<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買 6 盒巧克力</span>。姐姐給的錢夠嗎？",
+          meaningHint: [
+            "🟢 <strong>第 1 排（把單價估算成整十）</strong>：1 盒 32 元，大約是 <strong>30 元</strong>（而且實際比 30 元還貴 2 元）。",
+            "🔵 <strong>第 2 排（用估算列式算 6 盒）</strong>：列出 <strong>30 × 6 ＝ 180 元</strong>。",
+            "🟡 <strong>第 3 排（姐姐給的 150 元）</strong>：就算 1 盒只算 30 元都要 180 元了，姐姐只給 150 元夠嗎？"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1 盒巧克力(估算)",
+            unitText: "約30元",
+            row2Label: "買 6 盒 (估算)",
+            count: 6,
+            customCellLabels: ["約30元", "約30元", "約30元", "約30元", "約30元", "約30元"],
+            totalLabel: "6 盒大約要 180 元（6 個 30 元）",
+            row3ThresholdLabel: "姐姐給的錢",
+            row3ThresholdText: "💵 姐姐只給宥廷 150 元（只夠買 5 個 30 元，不到 180 元！）",
+            row3Ratio: 83.33
+          },
+          step1: {
+            question: "題目請我們用「估算」來列式，請問一盒巧克力 32 元要估算成幾元來當被乘數？",
+            options: [
+              { text: "32 元最接近 30 元，所以用「30」當被乘數，買 6 盒用「6」當乘數", correct: true },
+              { text: "32 元最接近 40 元，所以用「40」當被乘數", correct: false, reason: "32 的個位是 2，離 30 只差 2，離 40 差了 8，所以估算成 30 元最接近喔！" }
+            ]
+          },
+          mode: "estimation",
+          multiplicand: 30,
+          multiplier: 6,
+          estAnswer: 180,
+          decisionQuestion: "估算算式 30 × 6 ＝ 180 元，對照第 3 排姐姐只給 150 元，請問錢夠不夠買 6 盒巧克力？",
+          decisionOptions: [
+            { text: "不夠！因為就算一盒只算 30 元也要 180 元，已經超過姐姐給的 150 元了", correct: true },
+            { text: "夠！因為 150 元很多", correct: false, reason: "看圖解第 2 排與第 3 排：光算 6 個 30 元就要 180 元，姐姐只給 150 元是不夠的喔！" }
+          ],
+          numberBank: [30, 6, 40, 150],
+          reversedFeedback: "估算算式要把「每盒大約 30 元」放在被乘數，買「6 盒」放在乘數，記成 30 × 6 喔！"
+        },
+        {
+          id: "L5_Q4",
+          scene: "🏀 買籃球衣換贈品（單元卷壓軸題）",
+          skill: "兩步驟讀題列式＋週年慶贈品判斷",
+          promoBanner: "🎁 <strong>運動用品店週年慶公告：</strong><br/>• 消費滿 <strong>500 元</strong>，送一雙運動襪<br/>• 消費滿 <strong>1000 元</strong>，送一頂運動帽<br/>• 消費滿 <strong>1500 元</strong>，送一件紀念 T 恤",
+          text: "一雙運動襪 45 元，一件籃球衣的價錢是一雙運動襪的 5 倍，哥哥買了 4 件籃球衣，最高可以獲得哪一樣贈品？",
+          highlightedText: "<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>一雙運動襪 45 元</span>，一件籃球衣的價錢<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>是一雙運動襪的 5 倍</span>，哥哥<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'>買了 4 件籃球衣</span>，最高可以獲得哪一樣贈品？",
+          meaningHint: [
+            "🟢 <strong>看圖第 1 排（1 雙襪子）</strong>：1 小格代表 1 雙運動襪 <strong>45 元</strong>。",
+            "🔵 <strong>看圖第 2 排（1 件籃球衣）</strong>：長度是 5 小格（襪子的 <strong>5 倍</strong>，45 × 5 ＝ 225 元）。",
+            "🟣 <strong>看圖第 3 排（買 4 件籃球衣）</strong>：長度是 4 件球衣（225 × 4 ＝ 900 元），再看 900 元能換什麼贈品！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1雙運動襪 (基準)",
+            unitText: "45元",
+            row1Desc: "1小格 ＝ 1雙運動襪（45元）",
+            row2Label: "1件球衣 (襪子5倍)",
+            mult1: 5,
+            row2Note: "1件球衣 ＝ 5小格（襪子的 5倍）",
+            row3Label: "買 4 件籃球衣",
+            mult2: 4,
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "件球衣",
+            totalNote: "4 件籃球衣 ＝ 4 個「1件球衣的價錢」（先算 1件 45×5＝225 元，再算 4件 225×4＝900 元）"
+          },
+          mode: "twostep_decision",
+          paths: [
+            {
+              id: "A",
+              label: "先算第 2 排「1 件籃球衣幾元（45×5）」，再算第 3 排「買 4 件籃球衣共花幾元（225×4）」",
+              step1Desc: "先算第 2 排：1 件籃球衣的價錢（襪子45元放前面，乘數是5）",
+              eq1: [45, 5],
+              midVal: 225,
+              midUnit: "元",
+              step2Desc: "再算第 3 排：買 4 件籃球衣共花幾元（球衣225元放前面，乘數是4）",
+              eq2: [225, 4]
+            }
+          ],
+          answer: 900,
+          unit: "元",
+          decisionQuestion: "電腦幫你算出 4 件籃球衣共花 900 元了！對照上方週年慶公告（滿 500 送運動襪、滿 1000 送運動帽、滿 1500 送 T 恤），哥哥最高可以獲得哪一樣贈品？",
+          decisionOptions: [
+            { text: "送「一雙運動襪」！（因為 900 元有滿 500 元，但還沒滿 1000 元）", correct: true },
+            { text: "送「一頂運動帽」（需滿 1000 元）", correct: false, reason: "900 元還差 100 元才滿 1000 元，所以還不能換運動帽喔！" },
+            { text: "什麼贈品都拿不到", correct: false, reason: "900 元已經超過 500 元了，所以可以獲得滿 500 元的贈品「一雙運動襪」喔！" }
+          ],
+          numberBank: [45, 5, 4, 225, 500]
+        },
+        {
+          id: "L5_Q5",
+          scene: "📚 精裝童書大採購估算（進化試煉）",
+          skill: "百位數估算判斷：預算夠不夠買",
+          text: "學校圖書館購買精裝科普百科，每本特價 396 元，三年級各班導師想一起買 5 本，老師們準備了 2000 元的圖書預算，請用估算列式判斷：老師準備的 2000 元夠不夠買？",
+          highlightedText: "學校圖書館購買精裝科普百科，<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每本特價 396 元（接近400元）</span>，三年級各班導師想一起<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買 5 本</span>，老師們準備了<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'> 2000 元的圖書預算</span>，請用估算列式判斷：夠不夠買？",
+          meaningHint: [
+            "💡 <strong>讀懂估算技巧：</strong>每本 396 元接近 400 元（把 396 看成 400 來估算）！",
+            "<strong>列出估算式：</strong>400 × 5 ＝ 2000 元。",
+            "<strong>題意判斷：</strong>因為每本實際上只要 396 元（比 400 元便宜 4 元），所以買 5 本實際花費一定比 2000 元少，2000 元一定夠買！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1本百科(估400)",
+            unitText: "400元",
+            row2Label: "買 5 本估算",
+            count: 5,
+            row3ThresholdLabel: "預算 2000元",
+            row3ThresholdText: "帶 2000 元（等於估算上限 400×5）",
+            row3Ratio: 100,
+            totalLabel: "估算花 2000 元（實際 396×5 比 2000 少，夠買！）"
+          },
+          step1: {
+            question: "題目要求用「估算」思考，請問要把每本「396 元」看成多少元比較容易心算？",
+            options: [
+              { text: "把 396 元看成最接近的整百數 400 元！", correct: true },
+              { text: "把 396 元看成 300 元", correct: false, reason: "396 元差 4 元就 400 元了，看成 400 元才準確喔！" }
+            ]
+          },
+          mode: "estimation",
+          multiplicand: 400,
+          multiplier: 5,
+          estAnswer: 2000,
+          unit: "元",
+          numberBank: [396, 400, 5, 2000],
+          decisionQuestion: "電腦幫你算出估算金額 400 × 5 ＝ 2000 元了！因為實際每本是 396 元（比 400 元便宜），老師帶的 2000 元到底夠不夠買這 5 本書？",
+          decisionOptions: [
+            { text: "夠買！（因為每本實際 396 元比 400 元少，實際總價一定小於 2000 元）", correct: true },
+            { text: "不夠買（因為 400×5 剛好是 2000 元，沒有多餘的錢）", correct: false, reason: "想一想：每本便宜 4 元，5 本一共便宜 20 元，實際只要 1980 元，所以 2000 元夠買喔！" }
+          ],
+          reversedFeedback: "估算列式時，要把估算後的每本「400 元」放前面，5 本放後面：400 × 5 喔！"
+        },
+        {
+          id: "L5_Q6",
+          scene: "🏸 體育羽球社球拍採購（進化試煉）",
+          skill: "百位數估算判斷：經費夠不夠買",
+          text: "羽球社團準備更新裝備，碳纖維羽球拍每支特價 498 元，社長想買 6 支給社員練習，社團經費有 3000 元，請用估算列式判斷：3000 元經費夠不夠買？",
+          highlightedText: "羽球社團準備更新裝備，碳纖維羽球拍<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>每支特價 498 元（接近500元）</span>，社長想<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'>買 6 支</span>給社員練習，社團經費有<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'> 3000 元</span>，請用估算列式判斷：夠不夠買？",
+          meaningHint: [
+            "💡 <strong>讀懂估算技巧：</strong>每支 498 元只差 2 元就 500 元（把 498 看成 500 來估算）！",
+            "<strong>列出估算式：</strong>500 × 6 ＝ 3000 元。",
+            "<strong>題意判斷：</strong>因為每支實際只要 498 元（比 500 少 2 元），6 支一共比 3000 元便宜 12 元（實際 2988 元），所以 3000 元夠買！"
+          ],
+          diagramType: "unit_rows",
+          diagramData: {
+            row1Label: "1支球拍(估500)",
+            unitText: "500元",
+            row2Label: "買 6 支估算",
+            count: 6,
+            row3ThresholdLabel: "經費 3000元",
+            row3ThresholdText: "經費 3000 元（等於估算上限 500×6）",
+            row3Ratio: 100,
+            totalLabel: "估算花 3000 元（實際比 3000 少，夠買！）"
+          },
+          step1: {
+            question: "題目要求用估算思考，請問每支羽球拍特價「498 元」要估成多少元？",
+            options: [
+              { text: "估成 500 元（因為 498 離 500 只差 2 元）", correct: true },
+              { text: "估成 400 元", correct: false, reason: "498 離 500 元非常近，估成 500 元才符合估算原則喔！" }
+            ]
+          },
+          mode: "estimation",
+          multiplicand: 500,
+          multiplier: 6,
+          estAnswer: 3000,
+          unit: "元",
+          numberBank: [498, 500, 6, 3000],
+          decisionQuestion: "電腦幫你算出估算金額 500 × 6 ＝ 3000 元了！對照題目條件，社長準備的 3000 元經費到底夠不夠買 6 支球拍？",
+          decisionOptions: [
+            { text: "夠買！（因為每支 498 元比 500 元便宜，實際花費一定比 3000 元少）", correct: true },
+            { text: "不夠買（因為 500×6 剛好 3000 元）", correct: false, reason: "注意：每支只要 498 元，比 500 元少 2 元，6 支只要 2988 元，所以 3000 元夠買！" }
+          ],
+          reversedFeedback: "估算列式請把每支估算的「500 元」放前面，6 支放後面：500 × 6 喔！"
+        },
+        {
+          id: "L5_Q7",
+          scene: "🎨 文化廣場開學季滿額贈品（進化試煉）",
+          skill: "兩步驟連乘 ＋ 滿額贈品門檻判斷",
+          promoBanner: "<div class='font-bold text-amber-500'>📢 文化廣場開學週年慶滿額贈：</div><div>消費滿 600 元送「造型透明尺」，滿 1200 元送「36色彩色筆」，滿 2000 元送「護脊書包」。（各門檻贈品不重複累贈，以最高門檻為主）</div>",
+          text: "文化廣場舉行開學週年慶，一盒水彩賣 135 元，一套少年科學百科全書的價錢是一盒水彩的 4 倍，小明買了 2 套少年科學百科全書，小明最高可以獲得哪一樣滿額贈品？",
+          highlightedText: "一盒水彩<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>賣 135 元</span>，一套百科全書是水彩的<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'> 4 倍價錢</span>，小明買了<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'> 2 套百科全書</span>，小明最高可以獲得哪一樣滿額贈品？",
+          meaningHint: [
+            "📍 <strong>讀懂兩步驟倍數：</strong>1 盒水彩 135 元，1 套百科全書是水彩的 4 倍，買了 2 套百科全書！",
+            "先算 1 套百科全書幾元：135 × 4 ＝ 540 元。",
+            "再算買 2 套百科全書共花幾元：540 × 2 ＝ 1080 元。",
+            "對照滿額公告判斷贈品：1080 元滿 600 元，但還沒滿 1200 元，所以送「造型透明尺」！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1盒水彩",
+            unitText: "135元",
+            row1Desc: "最小基準 1 盒 ＝ 135 元",
+            mult1: 4,
+            row2Label: "1套百科 (4倍)",
+            row2Note: "1 套百科全書（共 135×4＝540 元）",
+            mult2: 2,
+            row3Label: "買2套百科",
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "套",
+            totalNote: "買 2 套 ＝ 540×2＝1080 元（滿 600 元門檻）"
+          },
+          step1: {
+            question: "看上方週年慶公告與圖解，如果要算小明買 2 套百科全書花多少錢，第一步要先算什麼？",
+            options: [
+              { text: "先算第 2 排：1 套百科全書的價錢（135 × 4 ＝ 540 元）", correct: true },
+              { text: "先算 4 × 2 ＝ 8（百科全書是 8 元）", correct: false, reason: "135 是水彩的錢，百科全書是水彩的 4 倍，所以要先算 135 × 4 喔！" }
+            ]
+          },
+          mode: "twostep_decision",
+          paths: [
+            {
+              id: "A",
+              label: "路線 A：先算第 2 排「1 套百科全書幾元」，再算第 3 排「買 2 套共花幾元」",
+              step1Desc: "先算 1 套百科全書的價錢（水彩 135 元的 4 倍）",
+              eq1: [135, 4],
+              midVal: 540,
+              midUnit: "元",
+              step2Desc: "再算買 2 套百科全書共花幾元（1套 540 元，買 2 套）",
+              eq2: [540, 2]
+            }
+          ],
+          answer: 1080,
+          unit: "元",
+          decisionQuestion: "電腦幫你算出買 2 套百科全書共花 1080 元了！對照上方公告（滿 600 送造型透明尺、滿 1200 送彩色筆、滿 2000 送書包），小明最高可以獲得哪樣贈品？",
+          decisionOptions: [
+            { text: "送「造型透明尺」！（因為 1080 元有滿 600 元，但未滿 1200 元）", correct: true },
+            { text: "送「36色彩色筆」（需滿 1200 元）", correct: false, reason: "1080 元還差 120 元才滿 1200 元，所以還不能兌換彩色筆喔！" },
+            { text: "什麼贈品都拿不到", correct: false, reason: "1080 元已經超過 600 元了，所以可以獲得滿 600 元的贈品「造型透明尺」！" }
+          ],
+          numberBank: [135, 4, 2, 540, 600, 1080]
+        },
+        {
+          id: "L5_Q8",
+          scene: "🎁 頂級超市年終大回饋（終極試煉）",
+          skill: "兩步驟連乘 ＋ 最高門檻終極贈品判斷",
+          promoBanner: "<div class='font-bold text-amber-500'>📢 頂級超市年終感恩慶滿額大回饋：</div><div>全館消費滿 800 元抽「銀牌公仔」，滿 1500 元抽「金牌公仔」，滿 2500 元直接送「限量神獸布偶」！（贈品以最高達成門檻為準）</div>",
+          text: "頂級超市舉行年終感恩慶，一罐進口有機果醬賣 120 元，一盒極品綜合點心禮盒的價錢是一罐果醬的 3 倍，阿姨買了 7 盒極品綜合點心禮盒送禮，阿姨最高可以獲得哪一樣好禮？",
+          highlightedText: "一罐進口有機果醬<span class='px-1 rounded bg-emerald-500/20 text-emerald-500 underline decoration-2'>賣 120 元</span>，一盒極品點心禮盒是果醬的<span class='px-1 rounded bg-sky-500/20 text-sky-500 underline decoration-2'> 3 倍價錢</span>，阿姨買了<span class='px-1 rounded bg-amber-500/20 text-amber-500 underline decoration-2'> 7 盒極品綜合點心禮盒</span>送禮，阿姨最高可以獲得哪一樣好禮？",
+          meaningHint: [
+            "📍 <strong>讀懂兩步驟結構：</strong>1 罐果醬 120 元，1 盒禮盒是果醬的 3 倍，買了 7 盒！",
+            "先算 1 盒點心禮盒幾元：120 × 3 ＝ 360 元。",
+            "再算買 7 盒點心禮盒共花幾元：360 × 7 ＝ 2520 元。",
+            "對照滿額好禮公告：2520 元已經超過 2500 元門檻，直接獲得最高大獎「限量神獸布偶」！"
+          ],
+          diagramType: "twostep_rows",
+          diagramData: {
+            row1Label: "1罐果醬",
+            unitText: "120元",
+            row1Desc: "最小基準 1 罐 ＝ 120 元",
+            mult1: 3,
+            row2Label: "1盒點心(3倍)",
+            row2Note: "1 盒點心禮盒（共 120×3＝360 元）",
+            mult2: 7,
+            row3Label: "買7盒禮盒",
+            row3GroupPrefix: "第",
+            row3GroupSuffix: "盒",
+            totalNote: "買 7 盒 ＝ 360×7＝2520 元（超越 2500 元最高門檻！）"
+          },
+          step1: {
+            question: "阿姨買了 7 盒綜合點心禮盒，如果要算總共花了多少錢，第一步要先算什麼？",
+            options: [
+              { text: "先算第 2 排：1 盒綜合點心禮盒賣幾元（120 × 3 ＝ 360 元）", correct: true },
+              { text: "先算 3 × 7 ＝ 21 元", correct: false, reason: "120 是果醬的價錢，禮盒是果醬的 3 倍，所以要先算 120 × 3 喔！" }
+            ]
+          },
+          mode: "twostep_decision",
+          paths: [
+            {
+              id: "A",
+              label: "路線 A：先算第 2 排「1 盒點心禮盒幾元」，再算第 3 排「買 7 盒共花幾元」",
+              step1Desc: "先算 1 盒點心禮盒賣多少元（果醬 120 元的 3 倍）",
+              eq1: [120, 3],
+              midVal: 360,
+              midUnit: "元",
+              step2Desc: "再算買 7 盒點心禮盒共花幾元（1盒 360 元，買 7 盒）",
+              eq2: [360, 7]
+            }
+          ],
+          answer: 2520,
+          unit: "元",
+          decisionQuestion: "電腦幫你算出買 7 盒點心禮盒共花 2520 元了！對照上方公告（滿 800 抽銀牌、滿 1500 抽金牌、滿 2500 送限量神獸布偶），阿姨最高可以獲得哪樣好禮？",
+          decisionOptions: [
+            { text: "直接送「限量神獸布偶」！（因為 2520 元已經超過滿 2500 元的最高門檻！）", correct: true },
+            { text: "抽「金牌公仔」（滿 1500 元）", correct: false, reason: "2520 元已經超過 2500 元了，所以可以直接獲得最高大獎「限量神獸布偶」喔！" },
+            { text: "抽「銀牌公仔」（滿 800 元）", correct: false, reason: "2520 元超過 2500 元，達到最高門檻，不用抽籤直接送神獸布偶！" }
+          ],
+          numberBank: [120, 3, 7, 360, 800, 2520]
+        }
+      ]
+    };
+
+    // ==========================================
+    // 3. STATE MANAGEMENT, PERSISTENCE & BEAST EVOLUTION (40 STARS TOTAL)
+    // ==========================================
+    const STORAGE_KEY = "reading_detective_quest_save_v2";
+
+    const BEAST_STAGES = [
+      {
+        minStars: 0,
+        maxStars: 4,
+        stageNumber: 1,
+        name: "沉睡的星紋神獸蛋",
+        icon: "🥚",
+        desc: "蛋殼上有著古老的加減乘除符號紋路，正靜靜沉睡著...。每讀懂一道題目並列出正確算式，就會注入一顆星的乘法能量！",
+        dialogue: "（蛋殼微微散發著溫暖微光，正等待乘法星星的注入...）"
+      },
+      {
+        minStars: 5,
+        maxStars: 9,
+        stageNumber: 2,
+        name: "微裂的星芒神獸蛋",
+        icon: "🥚✨",
+        desc: "吸收了足夠的乘法解題能量，蛋殼頂部出現了金色的裂縫，散發出耀眼的星芒，裡面的神獸正在甦醒中！",
+        dialogue: "咔嚓咔嚓...（蛋殼輕輕搖晃，似乎能聽到裡面的小呼喚聲！）"
+      },
+      {
+        minStars: 10,
+        maxStars: 14,
+        stageNumber: 3,
+        name: "破殼發光的小萌獸",
+        icon: "🐣🌟",
+        desc: "可愛的神獸小腦袋探出來了！它頭頂戴著金色乘號小皇冠，拍動著小羽翼，正開心對著你眨眼！",
+        dialogue: "「主人！你太厲害了，居然看懂了那麼多題目！再收集一些星星我就能長出真正的翅膀了！」"
+      },
+      {
+        minStars: 15,
+        maxStars: 19,
+        stageNumber: 4,
+        name: "即將現世的星光幼龍",
+        icon: "🐉⚡",
+        desc: "幼龍已經完全爬出蛋殼，身軀流轉著金藍色的運算光芒！它的乘法羽翼已經張開，就差最後幾顆星星完成終極覺醒！",
+        dialogue: "「吼嗚——！我感覺全身充滿了乘法思維的龐大力量！只差最後幾題了，衝啊！」"
+      },
+      {
+        minStars: 20,
+        maxStars: 24,
+        stageNumber: 5,
+        name: "乘法幻曜星輝龍（誕生體）",
+        icon: "🐉👑",
+        desc: "二十顆星星完全匯聚！星輝龍成功破殼降臨！接下來請挑戰進階進化篇章（第 21～40 題），讓星輝龍開啟神聖超進化！",
+        dialogue: "「🌟 主人！在你的智慧引導下我破殼降臨了！請繼續帶領我挑戰進階題目，喚醒我的超進化龍帝形態！」"
+      },
+      {
+        minStars: 25,
+        maxStars: 29,
+        stageNumber: 6,
+        name: "星輝龍．熾炎戰鎧型態",
+        icon: "🐉🔥",
+        desc: "二十五顆星星共鳴！星輝龍身披赤金色乘法戰甲，雙翼燃起邏輯推理的熾烈聖火！",
+        dialogue: "「🔥 吼！我感受到了炙熱的思維力量！文字中的干擾數字再也瞞不過我們的眼睛了！」"
+      },
+      {
+        minStars: 30,
+        maxStars: 34,
+        stageNumber: 7,
+        name: "星輝龍．雷霆星雲羽龍",
+        icon: "🐉⚡🌌",
+        desc: "三十顆星星共鳴！星輝龍展開由星座光芒織成的雷霆星翼，翱翔於乘法宇宙！",
+        dialogue: "「⚡ 乘法的兩步驟結構在我眼前就像星圖一樣清晰！主人，我們離終極境界只差最後一步了！」"
+      },
+      {
+        minStars: 35,
+        maxStars: 39,
+        stageNumber: 8,
+        name: "星輝龍．神曜曜晶聖龍",
+        icon: "🐉✨💎",
+        desc: "三十五顆星星匯聚！星輝龍龍鱗化為耀眼奪目的乘法星辰水晶，全身流轉著神聖的七彩光輝！",
+        dialogue: "「💎 這是乘法推理的極致光芒！衝刺最後的題目，喚醒傳說中的創世龍帝吧！」"
+      },
+      {
+        minStars: 40,
+        maxStars: 40,
+        stageNumber: 9,
+        name: "乘法至尊．萬曜光輝創世龍帝",
+        icon: "👑🐉🌌✨",
+        desc: "四十顆星星全數圓滿制霸！星輝龍達成終極究極超進化——萬曜創世龍帝降臨！守護所有學子的數學思維王座！",
+        dialogue: "「🌟👑 萬曜歸一，乘法創世！主人，你已徹底征服了全部 40 道文字密碼，你是無可撼動的『乘法創世龍尊』！」"
+      }
+    ];
+
+    function getBeastStage(stars) {
+      for (let i = BEAST_STAGES.length - 1; i >= 0; i--) {
+        if (stars >= BEAST_STAGES[i].minStars) return BEAST_STAGES[i];
+      }
+      return BEAST_STAGES[0];
+    }
+
+    let state = {
+      currentLevel: 1,
+      highestLevelReached: 1,
+      levelProgress: 0,
+      totalSolved: 0,
+      solvedQuestions: {}, // key: questionId (e.g. "L1_Q1"), value: true
+      combo: 0,
+      qIndexInLevel: 0,
+      soundEnabled: true,
+      hintActive: false,
+      step1SelectedIdx: null,
+      selectedPathId: "A",
+      slots: [null, null],
+      activeSlotIdx: 0,
+      step3SelectedVal: null,
+      questionSolved: false
+    };
+
+    function saveProgress() {
+      try {
+        const data = {
+          currentLevel: state.currentLevel,
+          highestLevelReached: state.highestLevelReached,
+          solvedQuestions: state.solvedQuestions,
+          combo: state.combo
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      } catch (e) {
+        console.warn("Storage save error:", e);
+      }
+    }
+
+    function loadProgress() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") {
+            state.solvedQuestions = parsed.solvedQuestions || {};
+            state.currentLevel = Math.max(1, Math.min(5, parsed.currentLevel || 1));
+            state.highestLevelReached = Math.max(parsed.highestLevelReached || 1, state.currentLevel);
+            state.combo = parsed.combo || 0;
+          }
+        }
+      } catch (e) {
+        console.warn("Storage load error:", e);
+      }
+      state.totalSolved = Object.keys(state.solvedQuestions).length;
+      updateLevelProgress();
+    }
+
+    function updateLevelProgress() {
+      const list = QUESTION_BANK[state.currentLevel] || [];
+      state.levelProgress = list.filter(q => state.solvedQuestions[q.id]).length;
+    }
+
+    let audioCtx = null;
+    function playTone(type) {
+      if (!state.soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const now = audioCtx.currentTime;
+        if (type === "click") {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(520, now);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          osc.start(now);
+          osc.stop(now + 0.08);
+        } else if (type === "correct") {
+          [523.25, 659.25, 783.99, 1046.5].forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+            gain.gain.setValueAtTime(0.12, now + idx * 0.07);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 0.22);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.07);
+            osc.stop(now + idx * 0.07 + 0.22);
+          });
+        } else if (type === "wrong") {
+          [300, 240].forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "sawtooth";
+            osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+            gain.gain.setValueAtTime(0.08, now + idx * 0.12);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.18);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.12);
+            osc.stop(now + idx * 0.12 + 0.18);
+          });
+        } else if (type === "levelup") {
+          [440, 554.37, 659.25, 880, 1108.73, 1318.5].forEach((freq, idx) => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = "triangle";
+            osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+            gain.gain.setValueAtTime(0.15, now + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.3);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(now + idx * 0.08);
+            osc.stop(now + idx * 0.08 + 0.3);
+          });
+        }
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      state.soundEnabled = !state.soundEnabled;
+      document.getElementById("soundToggleBtn").textContent = state.soundEnabled ? "🔊 音效開" : "🔇 音效關";
+    }
+
+    function toggleLevelSelector() {
+      const panel = document.getElementById("levelMapPanel");
+      panel.classList.toggle("hidden");
+      renderLevelMapButtons();
+    }
+
+    function renderLevelMapButtons() {
+      const container = document.getElementById("levelButtonsContainer");
+      container.innerHTML = LEVELS.map(lv => {
+        const isCurrent = lv.level === state.currentLevel;
+        const lvQuestions = QUESTION_BANK[lv.level] || [];
+        const solvedCount = lvQuestions.filter(q => state.solvedQuestions[q.id]).length;
+        const allDone = solvedCount >= lvQuestions.length && lvQuestions.length > 0;
+
+        return `
+          <button onclick="jumpToLevel(${lv.level})"
+            class="p-2.5 rounded-xl border text-left transition flex flex-col justify-between ${
+              isCurrent
+                ? "bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)] shadow-sm"
+                : allDone
+                  ? "bg-[var(--background)] text-[var(--foreground)] border-[var(--border)] hover:opacity-85"
+                  : "bg-amber-500/10 text-[var(--foreground)] border-amber-500/40 hover:bg-amber-500/20"
+            }">
+            <div class="flex items-center justify-between">
+              <span class="text-base">${lv.icon}</span>
+              <span class="text-[11px] font-bold ${allDone ? 'text-amber-400' : 'text-amber-500'}">
+                ${allDone ? '⭐ 滿星 (8/8)' : `⚠️ 缺星 (${solvedCount}/${lvQuestions.length}⭐)`}
+              </span>
+            </div>
+            <div class="text-xs font-bold mt-1">${lv.shortName}</div>
+          </button>
+        `;
+      }).join("");
+
+      const qList = QUESTION_BANK[state.currentLevel] || [];
+      const qJump = document.getElementById("questionJumpContainer");
+      if (qJump) {
+        const part1 = qList.slice(0, 4);
+        const part2 = qList.slice(4);
+
+        const renderBtn = (q, idx) => {
+          const isCurrQ = (state.qIndexInLevel % qList.length) === idx;
+          const isSolved = Boolean(state.solvedQuestions[q.id]);
+          return `
+            <button onclick="jumpToQuestionInLevel(${idx})"
+              class="px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition flex items-center justify-between gap-1.5 ${
+                isCurrQ
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)] shadow-xs"
+                  : isSolved
+                    ? "bg-[var(--background)] text-[var(--foreground)] border-[var(--border)] hover:opacity-80"
+                    : "bg-amber-500/15 text-amber-600 border-amber-500/40 hover:bg-amber-500/25 font-bold"
+              }">
+              <span class="truncate">第${idx + 1}題：${q.scene}</span>
+              <span class="shrink-0">${isSolved ? "⭐" : "⭕ 缺星"}</span>
+            </button>
+          `;
+        };
+
+        qJump.innerHTML = `
+          <div class="col-span-full space-y-2">
+            <div>
+              <div class="text-[11px] font-bold text-amber-500 flex items-center gap-1 mb-1.5">
+                <span>🐣 破殼篇（第 1 ~ 4 題）</span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                ${part1.map((q, i) => renderBtn(q, i)).join("")}
+              </div>
+            </div>
+            <div class="pt-2 border-t border-[var(--border)]/60">
+              <div class="text-[11px] font-bold text-indigo-500 flex items-center gap-1 mb-1.5">
+                <span>🐉 進化篇（第 5 ~ 8 題）</span>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                ${part2.map((q, i) => renderBtn(q, i + 4)).join("")}
+              </div>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function findNextUnsolvedInfo() {
+      for (let lv = 1; lv <= 5; lv++) {
+        const qList = QUESTION_BANK[lv] || [];
+        for (let idx = 0; idx < qList.length; idx++) {
+          if (!state.solvedQuestions[qList[idx].id]) {
+            return {
+              level: lv,
+              index: idx,
+              id: qList[idx].id,
+              scene: qList[idx].scene,
+              label: `Lv.${lv} 第 ${idx + 1} 題（${qList[idx].scene}）`
+            };
+          }
+        }
+      }
+      return null;
+    }
+
+    function jumpToNextUnsolvedQuestion() {
+      playTone("click");
+      const target = findNextUnsolvedInfo();
+      if (target) {
+        state.currentLevel = target.level;
+        state.qIndexInLevel = target.index;
+        updateLevelProgress();
+        saveProgress();
+        loadCurrentQuestion();
+        renderHeaderStats();
+        renderLevelMapButtons();
+      } else {
+        openBeastModal();
+      }
+    }
+
+    function jumpToLevel(lvNum) {
+      playTone("click");
+      state.currentLevel = lvNum;
+      state.qIndexInLevel = 0;
+      updateLevelProgress();
+      saveProgress();
+      loadCurrentQuestion();
+      renderHeaderStats();
+      renderLevelMapButtons();
+    }
+
+    function jumpToQuestionInLevel(qIdx) {
+      playTone("click");
+      state.qIndexInLevel = qIdx;
+      loadCurrentQuestion();
+      renderLevelMapButtons();
+    }
+
+    function resetAllProgress() {
+      if (!confirm("確定要重置所有解題與神獸孵化紀錄嗎？\n星星將會歸零，神獸會回到初始神獸蛋狀態。")) {
+        return;
+      }
+      playTone("click");
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch (e) {}
+      state.currentLevel = 1;
+      state.highestLevelReached = 1;
+      state.solvedQuestions = {};
+      state.totalSolved = 0;
+      state.combo = 0;
+      state.qIndexInLevel = 0;
+      updateLevelProgress();
+      loadCurrentQuestion();
+      renderHeaderStats();
+      renderLevelMapButtons();
+    }
+
+    // ==========================================
+    // 4. RENDER HEADER & TRUE-TO-SCALE PROPORTIONAL CSS GRID DIAGRAMS
+    // ==========================================
+    function getCurrentLevelConfig() {
+      return LEVELS.find(l => l.level === state.currentLevel) || LEVELS[0];
+    }
+
+    function getCurrentQuestion() {
+      const list = QUESTION_BANK[state.currentLevel] || QUESTION_BANK[1];
+      return list[state.qIndexInLevel % list.length];
+    }
+
+    function renderHeaderStats() {
+      const lvConfig = getCurrentLevelConfig();
+      document.getElementById("rankIcon").textContent = lvConfig.icon;
+      document.getElementById("rankTitleBadge").textContent = lvConfig.title;
+      document.getElementById("levelSubtitle").textContent = lvConfig.subtitle;
+      document.getElementById("totalSolvedEl").textContent = state.totalSolved;
+
+      // Beast incubator stats (Total 40 stars across 5 levels: 20 Hatching + 20 Evolution)
+      const totalStars = state.totalSolved;
+      const totalBeastStarsNeeded = 40;
+      const beastPct = Math.min(100, Math.round((totalStars / totalBeastStarsNeeded) * 100));
+      const currStage = getBeastStage(totalStars);
+
+      const beastMiniIcon = document.getElementById("beastMiniIcon");
+      if (beastMiniIcon) beastMiniIcon.textContent = currStage.icon;
+      const beastMiniStage = document.getElementById("beastMiniStage");
+      if (beastMiniStage) beastMiniStage.textContent = `${currStage.name} (${beastPct}%)`;
+      const beastFractionLabel = document.getElementById("beastFractionLabel");
+      if (beastFractionLabel) beastFractionLabel.textContent = `${totalStars} / 40 ⭐ (${beastPct}%)`;
+      const beastBarFill = document.getElementById("beastBarFill");
+      if (beastBarFill) beastBarFill.style.width = `${beastPct}%`;
+
+      const comboBadge = document.getElementById("comboBadge");
+      if (state.combo >= 2) {
+        comboBadge.classList.remove("hidden");
+        comboBadge.classList.add("flex");
+        document.getElementById("comboCountEl").textContent = state.combo;
+      } else {
+        comboBadge.classList.add("hidden");
+        comboBadge.classList.remove("flex");
+      }
+
+      const needed = lvConfig.questionsToPass;
+      const pct = Math.min(100, Math.round((state.levelProgress / needed) * 100));
+      document.getElementById("xpBarFill").style.width = `${pct}%`;
+      document.getElementById("xpFractionLabel").textContent = `本級進度：${state.levelProgress} / ${needed} ⭐`;
+      if (state.currentLevel < 5) {
+        const remain = Math.max(0, needed - state.levelProgress);
+        document.getElementById("xpProgressLabel").textContent = `距離升上 Lv.${state.currentLevel + 1} 還需破案 ${remain} 題`;
+      } else {
+        if (state.totalSolved < 40) {
+          const missing = 40 - state.totalSolved;
+          if (state.totalSolved < 20) {
+            document.getElementById("xpProgressLabel").textContent = `👑 已達最高階級！還差 ${20 - state.totalSolved} 顆星破殼，需 ${missing} 顆星完全超進化！`;
+          } else {
+            document.getElementById("xpProgressLabel").textContent = `👑 星輝龍已誕生！還需 ${missing} 顆星進化為「萬曜光輝創世龍帝」！`;
+          }
+        } else {
+          document.getElementById("xpProgressLabel").textContent = `👑 乘法至尊！全題庫 40 題滿星完成，萬曜光輝創世龍帝完全降臨！`;
+        }
+      }
+    }
+
+    // True-to-scale CSS Grid Renderer:
+    // Uses identical `grid-template-columns: repeat(N, minmax(0, 1fr))` across all rows
+    // so 1 unit in Row 1 has the EXACT same pixel width as 1 unit in Row 2,
+    // and 1 group in Row 2 has the EXACT same pixel width as 1 group in Row 3!
+    function renderVisualDiagram(q) {
+      const box = document.getElementById("visualDiagramBox");
+      const d = q.diagramData;
+
+      if (q.diagramType === "unit_rows" || q.diagramType === "filter_rows") {
+        const cols = d.count;
+
+        let distractorHtml = "";
+        if (q.diagramType === "filter_rows" && d.distractorText) {
+          distractorHtml = `
+            <div class="flex items-center w-full opacity-75">
+              <div class="w-20 sm:w-28 shrink-0 pr-2 text-right">
+                <span class="text-[11px] sm:text-xs font-bold text-rose-500 line-through leading-tight block">${d.distractorLabel}</span>
+              </div>
+              <div class="flex-1 min-w-0 border-l-2 border-[var(--foreground)]/60 pl-2 py-1">
+                <div class="px-2.5 py-1 rounded-lg bg-rose-500/10 border border-rose-500/30 text-[11px] sm:text-xs text-rose-500 font-medium inline-block truncate max-w-full">
+                  ${d.distractorText}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        let row2Cells = "";
+        for (let i = 0; i < cols; i++) {
+          const cellText = (d.customCellLabels && d.customCellLabels[i]) ? d.customCellLabels[i] : d.unitText;
+          row2Cells += `
+            <div style="grid-column: span 1;" class="h-8 sm:h-9 bg-sky-500 border-r border-[var(--background)] first:rounded-l-md last:rounded-r-md flex items-center justify-center text-white text-[11px] sm:text-xs font-bold px-0.5 truncate" title="${cellText}">
+              ${cellText}
+            </div>
+          `;
+        }
+
+        let row3ThresholdHtml = "";
+        if (d.row3ThresholdText) {
+          const barWidth = Math.min(100, d.row3Ratio || 100);
+          row3ThresholdHtml = `
+            <div class="flex items-center w-full">
+              <div class="w-20 sm:w-28 shrink-0 pr-2 text-right">
+                <span class="text-[11px] sm:text-xs font-bold text-amber-500 leading-tight block">${d.row3ThresholdLabel}</span>
+              </div>
+              <div class="flex-1 min-w-0 border-l-2 border-[var(--foreground)]/60 pl-0">
+                <div style="width: ${barWidth}%" class="h-8 bg-amber-500/20 border-2 border-amber-500 rounded-md flex items-center px-2 text-[11px] sm:text-xs font-bold text-[var(--foreground)] truncate">
+                  ${d.row3ThresholdText}
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        box.innerHTML = `
+          <div class="w-full space-y-2 py-0.5">
+            ${distractorHtml}
+
+            <!-- Row 1: 1 Single Unit in the exact same N-column CSS Grid! -->
+            <div class="flex items-center w-full">
+              <div class="w-20 sm:w-28 shrink-0 pr-2 text-right">
+                <span class="text-xs sm:text-sm font-bold text-[var(--foreground)] leading-tight block">${d.row1Label}</span>
+              </div>
+              <div class="flex-1 min-w-0 border-l-2 border-[var(--foreground)]/60 pl-0">
+                <div class="grid items-center w-full min-w-0" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr));">
+                  <div style="grid-column: span 1;" class="h-8 sm:h-9 bg-emerald-500 rounded-md flex items-center justify-center text-white text-xs font-bold px-1 truncate shadow-sm">
+                    ${d.unitText}
+                  </div>
+                  <div style="grid-column: 2 / -1;" class="pl-2 text-[11px] sm:text-xs font-bold text-emerald-500 truncate min-w-0">
+                    ◀ 每 1 份的量（${d.unitText}）
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: N Units in the exact same N-column CSS Grid! -->
+            <div class="flex items-center w-full">
+              <div class="w-20 sm:w-28 shrink-0 pr-2 text-right">
+                <span class="text-xs sm:text-sm font-bold text-[var(--foreground)] leading-tight block">${d.row2Label}</span>
+              </div>
+              <div class="flex-1 min-w-0 border-l-2 border-[var(--foreground)]/60 pl-0">
+                <div class="grid items-center w-full min-w-0 shadow-sm" style="grid-template-columns: repeat(${cols}, minmax(0, 1fr));">
+                  ${row2Cells}
+                </div>
+              </div>
+            </div>
+
+            ${row3ThresholdHtml}
+
+            <!-- Bottom Summary Caption (Fully responsive, no horizontal scroll) -->
+            <div class="w-full pt-2 border-t border-dashed border-[var(--border)] text-[11px] sm:text-xs flex flex-wrap items-center justify-between gap-1.5 leading-normal">
+              <span class="text-[var(--muted-foreground)] flex items-center gap-1">
+                <span>📍</span> 起點對齊（1格 ＝ ${d.unitText}）
+              </span>
+              <span class="text-[var(--foreground)] font-bold bg-[var(--secondary)] px-2.5 py-0.5 rounded-lg border border-[var(--border)]">
+                ${d.totalLabel}
+              </span>
+            </div>
+          </div>
+        `;
+      } else if (q.diagramType === "twostep_rows") {
+        // TRUE 1 : mult1 : (mult1 * mult2) PROPORTIONAL CSS GRID!
+        const totalUnits = d.mult1 * d.mult2;
+        const showInnerUnitText = totalUnits <= 8;
+
+        // Build Row 2's mult1 unit cells
+        let row2Cells = "";
+        for (let i = 0; i < d.mult1; i++) {
+          row2Cells += `
+            <div style="grid-column: span 1;" class="h-8 bg-sky-500 border-r border-[var(--background)] first:rounded-l-sm last:rounded-r-sm flex items-center justify-center text-white text-[10px] sm:text-xs font-bold overflow-hidden">
+              ${showInnerUnitText ? d.unitText : ""}
+            </div>
+          `;
+        }
+
+        // Build Row 3's mult2 groups
+        let row3Groups = "";
+        for (let g = 0; g < d.mult2; g++) {
+          const groupTitle = d.row3GroupSuffix
+            ? `${d.row3GroupPrefix}${g + 1}${d.row3GroupSuffix}`
+            : `${d.row3GroupPrefix}×1 (${d.mult1}格)`;
+
+          let subTicks = "";
+          for (let c = 0; c < d.mult1; c++) {
+            subTicks += `<div class="flex-1 h-1.5 border-r border-white/40 last:border-r-0 bg-black/15"></div>`;
+          }
+
+          row3Groups += `
+            <div style="grid-column: span ${d.mult1};" class="h-9 bg-[var(--primary)] border-r-2 border-[var(--background)] first:rounded-l-md last:rounded-r-md flex flex-col justify-between text-[var(--primary-foreground)] overflow-hidden shadow-sm">
+              <div class="flex w-full">${subTicks}</div>
+              <div class="flex-1 flex items-center justify-center text-[10px] sm:text-xs font-bold px-0.5 truncate">${groupTitle}</div>
+            </div>
+          `;
+        }
+
+        box.innerHTML = `
+          <div class="w-full space-y-2 py-0.5">
+            <!-- Row 1: Exact 1 column wide out of totalUnits! -->
+            <div class="flex items-center w-full">
+              <div class="w-20 sm:w-28 shrink-0 pr-2 text-right">
+                <span class="text-xs sm:text-sm font-bold text-[var(--foreground)] leading-tight block">${d.row1Label}</span>
+              </div>
+              <div class="flex-1 min-w-0 border-l-2 border-[var(--foreground)]/60 pl-0">
+                <div class="grid items-center w-full min-w-0" style="grid-template-columns: repeat(${totalUnits}, minmax(0, 1fr));">
+                  <div style="grid-column: span 1;" class="h-8 bg-emerald-500 rounded-sm flex items-center justify-center text-white text-[10px] sm:text-xs font-bold shadow-sm overflow-hidden">
+                    ${showInnerUnitText ? d.unitText : ""}
+                  </div>
+                  <div style="grid-column: 2 / -1;" class="pl-2 text-[11px] sm:text-xs font-bold text-emerald-500 truncate min-w-0">
+                    ◀ ${d.row1Desc || `最小 1 格 ＝ ${d.unitText}`}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 2: Exact d.mult1 columns wide out of totalUnits (visibly d.mult1 times Row 1)! -->
+            <div class="flex items-center w-full">
+              <div class="w-20 sm:w-28 shrink-0 pr-2 text-right">
+                <span class="text-xs sm:text-sm font-bold text-[var(--foreground)] leading-tight block">${d.row2Label}</span>
+              </div>
+              <div class="flex-1 min-w-0 border-l-2 border-[var(--foreground)]/60 pl-0">
+                <div class="grid items-center w-full min-w-0" style="grid-template-columns: repeat(${totalUnits}, minmax(0, 1fr));">
+                  ${row2Cells}
+                  <div style="grid-column: ${d.mult1 + 1} / -1;" class="pl-2 text-[11px] sm:text-xs font-bold text-sky-500 truncate min-w-0">
+                    ◀ ${d.row2Note}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 3: All d.mult2 groups (each group matches Row 2's exact width)! -->
+            <div class="flex items-center w-full">
+              <div class="w-20 sm:w-28 shrink-0 pr-2 text-right">
+                <span class="text-xs sm:text-sm font-bold text-[var(--foreground)] leading-tight block">${d.row3Label}</span>
+              </div>
+              <div class="flex-1 min-w-0 border-l-2 border-[var(--foreground)]/60 pl-0">
+                <div class="grid items-center w-full min-w-0" style="grid-template-columns: repeat(${totalUnits}, minmax(0, 1fr));">
+                  ${row3Groups}
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom Summary Caption (Fully responsive, no horizontal scroll) -->
+            <div class="w-full pt-2 border-t border-dashed border-[var(--border)] text-[11px] sm:text-xs flex flex-wrap items-center justify-between gap-1.5 leading-normal">
+              <span class="text-[var(--muted-foreground)] flex items-center gap-1">
+                <span>📍</span> 真實比例：第1排(1格) ➔ 第2排(${d.mult1}格) ➔ 第3排(${d.mult2}大組＝${totalUnits}格)
+              </span>
+              <span class="text-[var(--foreground)] font-bold bg-[var(--secondary)] px-2.5 py-0.5 rounded-lg border border-[var(--border)]">
+                ${d.totalNote}
+              </span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function toggleHint() {
+      playTone("click");
+      state.hintActive = !state.hintActive;
+      const q = getCurrentQuestion();
+      const hb = document.getElementById("hintBox");
+      const legend = document.getElementById("highlightLegend");
+      const textContainer = document.getElementById("problemTextContainer");
+
+      if (state.hintActive) {
+        hb.classList.remove("hidden");
+        legend.classList.remove("hidden");
+        textContainer.innerHTML = q.highlightedText || q.text;
+      } else {
+        hb.classList.add("hidden");
+        legend.classList.add("hidden");
+        textContainer.textContent = q.text;
+      }
+    }
+
+    // ==========================================
+    // 5. LOAD & RENDER QUESTION INTERACTION
+    // ==========================================
+    function loadCurrentQuestion() {
+      const q = getCurrentQuestion();
+      const list = QUESTION_BANK[state.currentLevel] || QUESTION_BANK[1];
+
+      state.hintActive = false;
+      state.step1SelectedIdx = null;
+      state.selectedPathId = "A";
+      state.slots = (q.mode === "twostep" || q.mode === "twostep_decision") ? [null, null, null, null] : [null, null];
+      state.activeSlotIdx = 0;
+      state.step3SelectedVal = null;
+      state.questionSolved = false;
+
+      document.getElementById("sceneBadge").textContent = q.scene;
+      document.getElementById("skillBadge").textContent = q.skill;
+
+      const isThisSolved = Boolean(state.solvedQuestions[q.id]);
+      const solvedBadge = document.getElementById("questionSolvedBadge");
+      if (solvedBadge) {
+        if (isThisSolved) {
+          solvedBadge.classList.remove("hidden");
+          solvedBadge.classList.add("inline-flex");
+        } else {
+          solvedBadge.classList.add("hidden");
+          solvedBadge.classList.remove("inline-flex");
+        }
+      }
+
+      const solvedNotice = document.getElementById("alreadySolvedNotice");
+      const jumpUnsolvedBtn = document.getElementById("jumpUnsolvedBtn");
+
+      if (isThisSolved && state.totalSolved < 40) {
+        if (solvedNotice) {
+          solvedNotice.classList.remove("hidden");
+          const nextUnsolved = findNextUnsolvedInfo();
+          const targetText = nextUnsolved ? `（推薦補解：<strong class="text-amber-500">${nextUnsolved.label}</strong>）` : "";
+          document.getElementById("alreadySolvedNoticeText").innerHTML = `
+            <span>⭐ 本題先前已通關並獲得過星星！目前全破星星：<strong class="text-amber-500">${state.totalSolved} / 40 ⭐</strong></span>
+            <span class="text-xs text-[var(--muted-foreground)] block sm:inline">${targetText}</span>
+          `;
+        }
+        if (jumpUnsolvedBtn) {
+          jumpUnsolvedBtn.classList.remove("hidden");
+          jumpUnsolvedBtn.classList.add("inline-flex");
+        }
+      } else {
+        if (solvedNotice) solvedNotice.classList.add("hidden");
+        if (jumpUnsolvedBtn) {
+          jumpUnsolvedBtn.classList.add("hidden");
+          jumpUnsolvedBtn.classList.remove("inline-flex");
+        }
+      }
+
+      const qNum = (state.qIndexInLevel % list.length) + 1;
+      const chapter = qNum <= 4 ? "🐣 破殼篇" : "🐉 進化篇";
+      document.getElementById("questionIndexLabel").textContent = `${chapter} 第 ${qNum} / ${list.length} 題`;
+      document.getElementById("problemTextContainer").textContent = q.text;
+      document.getElementById("highlightLegend").classList.add("hidden");
+
+      const promoBox = document.getElementById("promoBannerBox");
+      if (q.promoBanner) {
+        promoBox.classList.remove("hidden");
+        promoBox.innerHTML = q.promoBanner;
+      } else {
+        promoBox.classList.add("hidden");
+      }
+
+      const hintBox = document.getElementById("hintBox");
+      hintBox.classList.add("hidden");
+      hintBox.innerHTML = `
+        <div class="font-bold text-amber-500 mb-1">🖍️ 文字重點與圖解對照說明：</div>
+        <div class="space-y-1">${(q.meaningHint || []).map(line => `<div>${line}</div>`).join("")}</div>
+      `;
+
+      document.getElementById("feedbackBox").classList.add("hidden");
+      document.getElementById("submitCheckBtn").classList.remove("hidden");
+      document.getElementById("nextQuestionBtn").classList.add("hidden");
+      document.getElementById("nextQuestionBtn").classList.remove("flex");
+
+      renderVisualDiagram(q);
+      renderStep1(q);
+      renderStep2(q);
+      renderStep3(q);
+      renderLevelMapButtons();
+    }
+
+    function renderStep1(q) {
+      const step1Content = document.getElementById("step1Content");
+      const step1Status = document.getElementById("step1Status");
+
+      if (q.mode === "twostep" || q.mode === "twostep_decision") {
+        document.getElementById("step1Title").textContent = "第一步：對照三排比例圖解，確認解題順序！";
+        step1Status.textContent = "已確認順序";
+        step1Content.innerHTML = `
+          <div class="text-xs text-[var(--muted-foreground)] mb-2">
+            觀察上方三排真實比例圖解，依序解開中層與大層（每一步的乘數皆為一位數）：
+          </div>
+          <div class="space-y-2">
+            ${q.paths.map(p => `
+              <div class="w-full p-3 rounded-xl border text-left text-xs md:text-sm font-semibold transition bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)] shadow-sm flex items-center justify-between">
+                <span>${p.label}</span>
+                <span class="text-xs px-2.5 py-1 rounded-md bg-black/20 shrink-0 ml-2 font-bold">✓ 乘數皆為一位數</span>
+              </div>
+            `).join("")}
+          </div>
+        `;
+        return;
+      }
+
+      document.getElementById("step1Title").textContent = "第一步：讀懂文字敘述，破解題意關鍵！";
+      step1Status.textContent = state.step1SelectedIdx !== null ? "已選擇" : "請點選";
+      step1Content.innerHTML = `
+        <div class="text-xs md:text-sm font-semibold text-[var(--foreground)]">${q.step1.question}</div>
+        <div class="space-y-2">
+          ${q.step1.options.map((opt, idx) => {
+            const active = state.step1SelectedIdx === idx;
+            return `
+              <button onclick="selectStep1Option(${idx})"
+                class="w-full p-3 rounded-xl border text-left text-xs md:text-sm transition flex items-center justify-between ${
+                  active
+                    ? "bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)] font-bold shadow-sm"
+                    : "bg-[var(--background)] text-[var(--foreground)] border-[var(--border)] hover:opacity-85"
+                }">
+                <span>${opt.text}</span>
+                <span class="ml-2">${active ? "●" : "○"}</span>
+              </button>
+            `;
+          }).join("")}
+        </div>
+      `;
+    }
+
+    function selectStep1Option(idx) {
+      if (state.questionSolved) return;
+      playTone("click");
+      state.step1SelectedIdx = idx;
+      renderStep1(getCurrentQuestion());
+    }
+
+    function selectTwoStepPath(pathId) {
+      if (state.questionSolved) return;
+      playTone("click");
+      state.selectedPathId = pathId;
+      state.slots = [null, null, null, null];
+      state.activeSlotIdx = 0;
+      const q = getCurrentQuestion();
+      renderStep1(q);
+      renderStep2(q);
+    }
+
+    function renderStep2(q) {
+      const slotsArea = document.getElementById("equationSlotsArea");
+      const bankArea = document.getElementById("numberCardsBank");
+
+      if (q.mode === "twostep" || q.mode === "twostep_decision") {
+        const pathObj = q.paths.find(p => p.id === state.selectedPathId) || q.paths[0];
+        const s0 = state.slots[0];
+        const s1 = state.slots[1];
+        const s2 = state.slots[2];
+        const s3 = state.slots[3];
+
+        const step1Correct = (s0 === pathObj.eq1[0] && s1 === pathObj.eq1[1]);
+        const step2Correct = (s2 === pathObj.eq2[0] && s3 === pathObj.eq2[1]);
+        const midDisplay = step1Correct ? `電腦算出：${pathObj.midVal} (${pathObj.midUnit})` : `列對自動算出 (${pathObj.midUnit})`;
+        const finalDisplay = step2Correct ? `電腦算出：${q.answer} ${q.unit}` : `列對自動算出 (${q.unit})`;
+
+        slotsArea.innerHTML = `
+          <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] space-y-2">
+            <div class="text-xs font-bold text-[var(--muted-foreground)]">【先算】${pathObj.step1Desc}：</div>
+            <div class="flex items-center gap-2 flex-wrap">
+              ${renderSlotButton(0, s0, "被乘數")}
+              <span class="text-base font-bold">×</span>
+              ${renderSlotButton(1, s1, "乘數")}
+              <span class="text-base font-bold">＝</span>
+              <span class="px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-xs font-bold ${step1Correct ? "text-emerald-500" : "text-[var(--muted-foreground)]"}">
+                ${midDisplay}
+              </span>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-[var(--background)] border border-[var(--border)] space-y-2">
+            <div class="text-xs font-bold text-[var(--muted-foreground)]">【再算】${pathObj.step2Desc}：</div>
+            <div class="flex items-center gap-2 flex-wrap">
+              ${renderSlotButton(2, s2, "被乘數")}
+              <span class="text-base font-bold">×</span>
+              ${renderSlotButton(3, s3, "乘數")}
+              <span class="text-base font-bold">＝</span>
+              <span class="px-3 py-1.5 rounded-lg bg-[var(--secondary)] text-xs font-bold ${step2Correct ? "text-emerald-500" : "text-[var(--muted-foreground)]"}">
+                ${finalDisplay}
+              </span>
+            </div>
+          </div>
+        `;
+      } else {
+        const s0 = state.slots[0];
+        const s1 = state.slots[1];
+        const isEqCorrect = (s0 === q.multiplicand && s1 === q.multiplier);
+        const targetAns = q.mode === "estimation" ? `${q.estAnswer} 元` : `${q.answer} ${q.unit}`;
+        const eqRightText = isEqCorrect ? `電腦算出：${targetAns}` : "列對自動算出";
+
+        slotsArea.innerHTML = `
+          <div class="p-3.5 rounded-xl bg-[var(--background)] border border-[var(--border)]">
+            <div class="flex items-center justify-center gap-2.5 flex-wrap">
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-xs text-emerald-500 font-bold">被乘數(每1份)</span>
+                ${renderSlotButton(0, s0, "點我填入")}
+              </div>
+              <span class="text-lg font-bold mt-4">×</span>
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-xs text-sky-500 font-bold">乘數(幾份/幾倍)</span>
+                ${renderSlotButton(1, s1, "點我填入")}
+              </div>
+              <span class="text-lg font-bold mt-4">＝</span>
+              <div class="flex flex-col items-center gap-1">
+                <span class="text-xs text-[var(--muted-foreground)] font-medium">電腦自動計算</span>
+                <span class="px-3 py-2 rounded-xl bg-[var(--secondary)] border border-[var(--border)] text-xs md:text-sm font-bold ${isEqCorrect ? "text-emerald-500" : "text-[var(--muted-foreground)]"}">
+                  ${eqRightText}
+                </span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      bankArea.innerHTML = q.numberBank.map(num => `
+        <button onclick="fillSlotWithNumber(${num})"
+          class="px-4 py-2 rounded-xl bg-[var(--secondary)] text-[var(--foreground)] border border-[var(--border)] font-bold text-sm md:text-base hover:bg-[var(--primary)] hover:text-[var(--primary-foreground)] transition shadow-sm">
+          ${num}
+        </button>
+      `).join("");
+    }
+
+    function renderSlotButton(slotIdx, val, placeholder) {
+      const isFocused = state.activeSlotIdx === slotIdx;
+      const hasVal = val !== null;
+      return `
+        <button onclick="setActiveSlot(${slotIdx})"
+          class="slot-box min-w-[84px] px-3 py-2 rounded-xl border-2 font-bold text-sm md:text-base transition ${
+            isFocused
+              ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--foreground)] ring-2 ring-[var(--primary)]/30"
+              : hasVal
+              ? "border-[var(--border)] bg-[var(--card)] text-[var(--foreground)]"
+              : "border-dashed border-[var(--border)] bg-[var(--card)] text-[var(--muted-foreground)] text-xs"
+          }">
+          ${hasVal ? val : placeholder}
+        </button>
+      `;
+    }
+
+    function setActiveSlot(idx) {
+      if (state.questionSolved) return;
+      playTone("click");
+      state.activeSlotIdx = idx;
+      renderStep2(getCurrentQuestion());
+    }
+
+    function fillSlotWithNumber(num) {
+      if (state.questionSolved) return;
+      playTone("click");
+      state.slots[state.activeSlotIdx] = num;
+      const totalSlots = state.slots.length;
+      for (let i = 1; i <= totalSlots; i++) {
+        const nextIdx = (state.activeSlotIdx + i) % totalSlots;
+        if (state.slots[nextIdx] === null) {
+          state.activeSlotIdx = nextIdx;
+          break;
+        }
+      }
+      renderStep2(getCurrentQuestion());
+    }
+
+    function clearEquationSlots() {
+      if (state.questionSolved) return;
+      playTone("click");
+      state.slots = state.slots.map(() => null);
+      state.activeSlotIdx = 0;
+      renderStep2(getCurrentQuestion());
+    }
+
+    function renderStep3(q) {
+      const step3Card = document.getElementById("step3Card");
+      const step3Content = document.getElementById("step3Content");
+
+      if (q.mode === "estimation" || q.mode === "twostep_decision") {
+        step3Card.classList.remove("hidden");
+        document.getElementById("step3Title").textContent = "第三步：根據題意條件做出判斷（免計算）！";
+        step3Content.innerHTML = `
+          <div class="text-xs md:text-sm font-semibold text-[var(--foreground)]">${q.decisionQuestion}</div>
+          <div class="space-y-2">
+            ${q.decisionOptions.map((opt, idx) => {
+              const active = state.step3SelectedVal === idx;
+              return `
+                <button onclick="selectStep3Val(${idx})"
+                  class="w-full p-3 rounded-xl border text-left text-xs md:text-sm transition flex items-center justify-between ${
+                    active
+                      ? "bg-[var(--primary)] text-[var(--primary-foreground)] border-[var(--primary)] font-bold shadow-sm"
+                      : "bg-[var(--background)] text-[var(--foreground)] border-[var(--border)] hover:opacity-85"
+                  }">
+                  <span>${opt.text}</span>
+                  <span class="ml-2">${active ? "●" : "○"}</span>
+                </button>
+              `;
+            }).join("")}
+          </div>
+        `;
+      } else {
+        step3Card.classList.add("hidden");
+      }
+    }
+
+    function selectStep3Val(val) {
+      if (state.questionSolved) return;
+      playTone("click");
+      state.step3SelectedVal = val;
+      renderStep3(getCurrentQuestion());
+    }
+
+    // ==========================================
+    // 6. DIAGNOSTIC ANSWER CHECKING & UPGRADE LOGIC
+    // ==========================================
+    function showFeedback(type, htmlContent) {
+      const box = document.getElementById("feedbackBox");
+      box.classList.remove("hidden", "bg-emerald-500/15", "border-emerald-500/40", "bg-rose-500/15", "border-rose-500/40", "bg-amber-500/15", "border-amber-500/40");
+
+      if (type === "success") {
+        box.classList.add("bg-emerald-500/15", "border-emerald-500/40");
+      } else if (type === "warning") {
+        box.classList.add("bg-amber-500/15", "border-amber-500/40");
+      } else {
+        box.classList.add("bg-rose-500/15", "border-rose-500/40");
+      }
+      box.innerHTML = htmlContent;
+    }
+
+    function checkCurrentAnswer() {
+      if (state.questionSolved) return;
+      const q = getCurrentQuestion();
+
+      if (q.mode !== "twostep" && q.mode !== "twostep_decision") {
+        if (state.step1SelectedIdx === null) {
+          playTone("wrong");
+          showFeedback("warning", "⚠️ 請先完成<strong>「第一步：讀懂文字敘述，破解題意關鍵」</strong>的選擇喔！");
+          return;
+        }
+        const chosenOpt = q.step1.options[state.step1SelectedIdx];
+        if (!chosenOpt.correct) {
+          playTone("wrong");
+          state.combo = 0;
+          renderHeaderStats();
+          showFeedback("error", `🧐 <strong>第一步的文字題意還可以再想一下：</strong><br/>${chosenOpt.reason}`);
+          return;
+        }
+      }
+
+      if (state.slots.some(s => s === null)) {
+        playTone("wrong");
+        showFeedback("warning", "⚠️ 算式還有空格沒填完喔！請點選數字卡填入算式空格。");
+        return;
+      }
+
+      if (q.mode === "twostep" || q.mode === "twostep_decision") {
+        const pathObj = q.paths.find(p => p.id === state.selectedPathId) || q.paths[0];
+        const [s0, s1, s2, s3] = state.slots;
+
+        if (s0 === pathObj.eq1[1] && s1 === pathObj.eq1[0]) {
+          playTone("wrong");
+          state.combo = 0;
+          renderHeaderStats();
+          showFeedback("warning", `💡 <strong>【先算】算式的被乘數與乘數顛倒囉！</strong><br/>我們要${pathObj.step1Desc}，應該把每份的量「${pathObj.eq1[0]}」放在前面當被乘數，寫成 <strong>${pathObj.eq1[0]} × ${pathObj.eq1[1]} ＝ ${pathObj.midVal}</strong> 喔！`);
+          return;
+        }
+        if (s0 !== pathObj.eq1[0] || s1 !== pathObj.eq1[1]) {
+          playTone("wrong");
+          state.combo = 0;
+          renderHeaderStats();
+          showFeedback("error", `🧐 <strong>【先算】的算式不太對喔！</strong><br/>依照你選的路線，第一步要「${pathObj.step1Desc}」，請看左邊圖解找出對應的兩個數字！`);
+          return;
+        }
+
+        if (s2 === pathObj.eq2[1] && s3 === pathObj.eq2[0]) {
+          playTone("wrong");
+          state.combo = 0;
+          renderHeaderStats();
+          showFeedback("warning", `💡 <strong>【再算】的被乘數與乘數顛倒囉！</strong><br/>第二步要${pathObj.step2Desc}，應該把每份的量「${pathObj.eq2[0]}」放前面，寫成 <strong>${pathObj.eq2[0]} × ${pathObj.eq2[1]}</strong> 喔！`);
+          return;
+        }
+        if (s2 !== pathObj.eq2[0] || s3 !== pathObj.eq2[1]) {
+          playTone("wrong");
+          state.combo = 0;
+          renderHeaderStats();
+          showFeedback("error", `🧐 <strong>【再算】的算式還差一點點！</strong><br/>第一步電腦已經幫你算出 ${pathObj.midVal}（${pathObj.midUnit}），接下來要「${pathObj.step2Desc}」，再對照圖解第 3 排想想看！`);
+          return;
+        }
+      } else {
+        const [s0, s1] = state.slots;
+        if (s0 === q.multiplier && s1 === q.multiplicand) {
+          playTone("wrong");
+          state.combo = 0;
+          renderHeaderStats();
+          showFeedback("warning", `💡 <strong>差一點點！被乘數和乘數的位置顛倒囉：</strong><br/>${q.reversedFeedback}`);
+          return;
+        }
+        if (s0 !== q.multiplicand || s1 !== q.multiplier) {
+          playTone("wrong");
+          state.combo = 0;
+          renderHeaderStats();
+          showFeedback("error", `🧐 <strong>算式數字抓錯囉！別急著看到數字就填！</strong><br/>請點開左邊的「🖍️ 點亮文字重點提示」，看看綠色文字（每 1 份是多少）與藍色文字（共有幾份）分別是哪兩個數字！`);
+          return;
+        }
+      }
+
+      if (q.mode === "estimation" || q.mode === "twostep_decision") {
+        if (state.step3SelectedVal === null) {
+          playTone("wrong");
+          showFeedback("warning", "⚠️ 算式完全正確！別忘了在<strong>「第三步」</strong>選出你的題意判斷結果喔！");
+          return;
+        }
+        const chosenDec = q.decisionOptions[state.step3SelectedVal];
+        if (!chosenDec.correct) {
+          playTone("wrong");
+          state.combo = 0;
+          renderHeaderStats();
+          showFeedback("error", `🧐 <strong>算式很棒，但最後的題意判斷再想一想：</strong><br/>${chosenDec.reason}`);
+          return;
+        }
+      }
+
+      handleCorrectSuccess(q);
+    }
+
+    function handleCorrectSuccess(q) {
+      state.questionSolved = true;
+      state.combo += 1;
+
+      const isFirstTime = !state.solvedQuestions[q.id];
+      if (isFirstTime) {
+        state.solvedQuestions[q.id] = true;
+        state.totalSolved = Object.keys(state.solvedQuestions).length;
+        updateLevelProgress();
+        saveProgress();
+      }
+
+      const lvConfig = getCurrentLevelConfig();
+      const willAwakenBeast = (state.totalSolved === 20 && isFirstTime) || (state.totalSolved === 40 && isFirstTime);
+      const willLevelUp = (state.currentLevel < 5 && state.levelProgress >= lvConfig.questionsToPass && state.currentLevel >= state.highestLevelReached && state.totalSolved < 40);
+
+      if (willAwakenBeast || willLevelUp) {
+        playTone("levelup");
+      } else {
+        playTone("correct");
+      }
+
+      renderHeaderStats();
+      renderLevelMapButtons();
+
+      let eqSummary = "";
+      if (q.mode === "twostep" || q.mode === "twostep_decision") {
+        const pathObj = q.paths.find(p => p.id === state.selectedPathId) || q.paths[0];
+        eqSummary = `先算 <strong>${pathObj.eq1[0]} × ${pathObj.eq1[1]} ＝ ${pathObj.midVal}</strong>，再算 <strong>${pathObj.eq2[0]} × ${pathObj.eq2[1]} ＝ ${q.answer}（${q.unit}）</strong>`;
+      } else if (q.mode === "estimation") {
+        eqSummary = `正確列式：<strong>${q.multiplicand} × ${q.multiplier} ＝ ${q.estAnswer} 元</strong>`;
+      } else {
+        eqSummary = `正確列式：<strong>${q.multiplicand} × ${q.multiplier} ＝ ${q.answer}（${q.unit}）</strong>`;
+      }
+
+      const starFeedback = isFirstTime
+        ? `<div class="mt-1.5 p-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-500 font-bold text-xs flex items-center justify-between">
+             <span>⭐ 恭喜解鎖新題目！獲得 1 顆星星注入神獸！</span>
+             <span>目前共 ${state.totalSolved} / 40 ⭐</span>
+           </div>`
+        : `<div class="mt-1.5 p-2 rounded-lg bg-[var(--secondary)] border border-[var(--border)] text-[var(--muted-foreground)] text-xs flex items-center justify-between">
+             <span>⭐ 本題先前已通關並獲得過星星囉！（重複練習鞏固實力）</span>
+             <span class="font-bold text-amber-500">目前共 ${state.totalSolved} / 40 ⭐</span>
+           </div>`;
+
+      showFeedback(
+        "success",
+        `🎉 <strong>讀題與列式完全正確！你徹底看懂題目的意思了！</strong><br/>${eqSummary}${starFeedback}`
+      );
+
+      document.getElementById("submitCheckBtn").classList.add("hidden");
+      const nextBtn = document.getElementById("nextQuestionBtn");
+      nextBtn.classList.remove("hidden");
+      nextBtn.classList.add("flex");
+
+      if (willAwakenBeast) {
+        setTimeout(() => {
+          openBeastAwakeningModal();
+        }, 650);
+      } else if (willLevelUp) {
+        setTimeout(() => {
+          triggerLevelUp();
+        }, 550);
+      }
+    }
+
+    function triggerLevelUp() {
+      state.currentLevel += 1;
+      state.highestLevelReached = Math.max(state.highestLevelReached || 1, state.currentLevel);
+      state.qIndexInLevel = 0;
+      updateLevelProgress();
+      saveProgress();
+
+      const newLv = getCurrentLevelConfig();
+      document.getElementById("modalBadgeIcon").textContent = newLv.icon;
+      document.getElementById("modalNewRankTitle").textContent = newLv.title;
+      document.getElementById("modalNewRankDesc").textContent = newLv.subtitle;
+      document.getElementById("modalUnlockFeature").textContent = `🔓 本階挑戰重點：${newLv.unlockDesc}`;
+      document.getElementById("levelUpModal").classList.remove("hidden");
+
+      renderHeaderStats();
+      renderLevelMapButtons();
+    }
+
+    function closeLevelUpModal() {
+      playTone("click");
+      document.getElementById("levelUpModal").classList.add("hidden");
+      loadCurrentQuestion();
+    }
+
+    // ==========================================
+    // 7. BEAST INCUBATOR MODALS & CONTROLS
+    // ==========================================
+    function openBeastModal() {
+      playTone("click");
+      const totalStars = state.totalSolved;
+      const currStage = getBeastStage(totalStars);
+      const beastPct = Math.min(100, Math.round((totalStars / 40) * 100));
+
+      document.getElementById("beastModalStageBadge").textContent = `第 ${currStage.stageNumber} 階段：${currStage.name}`;
+      document.getElementById("beastModalAvatar").textContent = currStage.icon;
+      document.getElementById("beastModalStarsCount").textContent = `${totalStars} / 40 ⭐`;
+      document.getElementById("beastModalPctText").textContent = `(${beastPct}%)`;
+      document.getElementById("beastModalBarFill").style.width = `${beastPct}%`;
+      document.getElementById("beastModalDialogue").textContent = currStage.dialogue;
+
+      const stagesContainer = document.getElementById("beastStagesList");
+      stagesContainer.innerHTML = BEAST_STAGES.map(st => {
+        const isCurrent = (currStage.stageNumber === st.stageNumber);
+        const isUnlocked = (totalStars >= st.minStars);
+        let statusBadge = "";
+        if (isCurrent) {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-500 font-extrabold text-[11px] border border-amber-500/40">🌟 進行中</span>`;
+        } else if (isUnlocked) {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-500 font-bold text-[11px]">✅ 已達成</span>`;
+        } else {
+          statusBadge = `<span class="px-2 py-0.5 rounded-full bg-[var(--secondary)] text-[var(--muted-foreground)] font-medium text-[11px]">🔒 需 ${st.minStars} ⭐</span>`;
+        }
+
+        return `
+          <div class="p-2.5 rounded-xl border flex items-center justify-between transition ${
+            isCurrent
+              ? "bg-amber-500/10 border-amber-500/40 shadow-sm"
+              : isUnlocked
+                ? "bg-[var(--card)] border-[var(--border)]"
+                : "bg-[var(--secondary)]/50 border-[var(--border)] opacity-60"
+          }">
+            <div class="flex items-center gap-2.5">
+              <span class="text-2xl">${st.icon}</span>
+              <div>
+                <div class="text-xs font-bold text-[var(--foreground)] flex items-center gap-1.5">
+                  <span>${st.name}</span>
+                </div>
+                <div class="text-[11px] text-[var(--muted-foreground)]">${st.desc}</div>
+              </div>
+            </div>
+            <div class="shrink-0 pl-2">
+              ${statusBadge}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      document.getElementById("beastModal").classList.remove("hidden");
+    }
+
+    function closeBeastModal() {
+      playTone("click");
+      document.getElementById("beastModal").classList.add("hidden");
+    }
+
+    function openBeastAwakeningModal() {
+      const isEmperor = (state.totalSolved >= 40);
+      const badge = document.getElementById("awakeningBadgeText");
+      const avatarBox = document.getElementById("awakeningAvatarBox");
+      const avatar = document.getElementById("awakeningAvatar");
+      const title = document.getElementById("awakeningTitle");
+      const subTitle = document.getElementById("awakeningSubTitle");
+      const desc = document.getElementById("awakeningDesc");
+      const achieve = document.getElementById("awakeningAchieveBadge");
+      const actionBtn = document.getElementById("awakeningActionBtn");
+
+      if (isEmperor) {
+        if (badge) badge.textContent = "👑 40/40 滿星至尊超進化！";
+        if (avatarBox) avatarBox.className = "w-32 h-32 rounded-3xl bg-gradient-to-tr from-amber-400 via-rose-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-amber-500/30 animate-pulse border-4 border-yellow-300";
+        if (avatar) avatar.textContent = "👑🐉🌌✨";
+        if (title) title.textContent = "乘法至尊．萬曜光輝創世龍帝！";
+        if (subTitle) subTitle.textContent = "超越極限！全題庫 40 題閱讀理解大滿貫！";
+        if (desc) desc.textContent = "你已徹底攻克 40 道生活情境應用題，能完全看穿文字陷阱、精準掌握「每份量×幾份」的乘法本質。乘法幻曜星輝龍吸收了全部 40 顆智慧之星，蛻變為凌駕星海的終極創世龍帝！";
+        if (achieve) achieve.textContent = "🏆 榮獲至尊榮譽稱號：【乘法創世至尊讀題宗師】";
+        if (actionBtn) actionBtn.textContent = "🌟 進入研究所檢視創世龍帝全貌";
+      } else {
+        if (badge) badge.textContent = "🎉 20/40 星星破殼誕生現世！";
+        if (avatarBox) avatarBox.className = "w-28 h-28 rounded-3xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-amber-400 flex items-center justify-center shadow-lg shadow-indigo-500/30 animate-pulse";
+        if (avatar) avatar.textContent = "🐉👑";
+        if (title) title.textContent = "乘法幻曜星輝龍．破殼現世！";
+        if (subTitle) subTitle.textContent = "神獸破殼而出！但星輝龍還能繼續超進化！";
+        if (desc) desc.textContent = "恭喜你解開 20 道關鍵應用題，成功孵化出象徵智慧與邏輯的「乘法幻曜星輝龍」！後面還有 20 道進化篇應用題，快收集全部 40 顆星星，助星輝龍進化為終極創世龍帝吧！";
+        if (achieve) achieve.textContent = "🏆 解鎖榮譽：【乘法神獸幻曜守護者】";
+        if (actionBtn) actionBtn.textContent = "🚀 繼續挑戰進化篇（邁向 40 星）";
+      }
+      document.getElementById("beastAwakeningModal").classList.remove("hidden");
+    }
+
+    function closeBeastAwakeningModal() {
+      playTone("click");
+      document.getElementById("beastAwakeningModal").classList.add("hidden");
+      openBeastModal();
+    }
+
+    function prevQuestion() {
+      playTone("click");
+      const list = QUESTION_BANK[state.currentLevel] || QUESTION_BANK[1];
+      state.qIndexInLevel = (state.qIndexInLevel - 1 + list.length) % list.length;
+      loadCurrentQuestion();
+    }
+
+    function nextQuestion() {
+      playTone("click");
+      const list = QUESTION_BANK[state.currentLevel] || QUESTION_BANK[1];
+
+      // If there are still unsolved questions in the game (up to 40 stars):
+      if (state.totalSolved < 40) {
+        // Look ahead in current level first
+        for (let i = 1; i < list.length; i++) {
+          const nextIdx = (state.qIndexInLevel + i) % list.length;
+          if (!state.solvedQuestions[list[nextIdx].id]) {
+            state.qIndexInLevel = nextIdx;
+            loadCurrentQuestion();
+            return;
+          }
+        }
+        // If all questions in the current level are already solved, jump to the next unsolved question in ANY level!
+        jumpToNextUnsolvedQuestion();
+        return;
+      }
+
+      state.qIndexInLevel = (state.qIndexInLevel + 1) % list.length;
+      loadCurrentQuestion();
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      // If opened standalone in an external browser (Chrome/Edge/Safari), provide theme tokens
+      const rootStyle = getComputedStyle(document.documentElement);
+      if (!rootStyle.getPropertyValue("--background").trim()) {
+        const vars = {
+          "--background": "#f8fafc",
+          "--foreground": "#0f172a",
+          "--card": "#ffffff",
+          "--secondary": "#f1f5f9",
+          "--secondary-foreground": "#1e293b",
+          "--muted-foreground": "#64748b",
+          "--border": "#e2e8f0",
+          "--primary": "#2563eb",
+          "--primary-foreground": "#ffffff"
+        };
+        Object.entries(vars).forEach(([k, v]) => document.documentElement.style.setProperty(k, v));
+      }
+      loadProgress();
+      renderHeaderStats();
+      renderLevelMapButtons();
+      loadCurrentQuestion();
+    });
+  </script>
+</body>
+</html>
